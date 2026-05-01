@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RO MD管理ツール ver3.2</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style id="themeStyle">
+:root {
+  --bg: #0f0e17; --bg2: #1a1927; --bg3: #242336; --border: #3a3858; --accent: #7c6af7; --accent2: #a78bfa;
+  --done: #064e3b; --done-text: #4ade80; --done-border: #10b981;
+  --notdone: #2d1616; --notdone-text: #f87171; --notdone-border: #ef4444;
+  --text: #e2e0ff; --text2: #9895b5; --gold: #f59e0b;
+  --daily: #3b82f6; --threedays: #8b5cf6; --weekly: #ec4899;
+}
+</style>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.4; overflow-x: hidden; transition: 0.3s; }
+
+header { background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%); border-bottom: 3px solid var(--accent); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+header h1 { font-size: 18px; font-weight: 700; background: linear-gradient(90deg, var(--gold), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+.tabs { display: flex; gap: 4px; padding: 12px 12px 0; border-bottom: 2px solid var(--border); background: var(--bg2); overflow-x: auto; scrollbar-width: none; }
+.tab-btn { padding: 10px 18px; border: 1px solid var(--border); border-bottom: none; background: var(--bg3); color: var(--text2); cursor: pointer; border-radius: 8px 8px 0 0; font-size: 13px; white-space: nowrap; transition: 0.2s; }
+.tab-btn.active { background: var(--bg); color: var(--accent2); border-color: var(--accent); font-weight: bold; }
+
+main { padding: 15px; width: 100%; transition: 0.3s; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+.card h2 { font-size: 14px; color: var(--accent2); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--accent); padding-left: 8px; }
+
+.form-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 11px; color: var(--text2); font-weight: bold; }
+.form-group input, .form-group select, .form-group textarea { padding: 8px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; outline: none; }
+
+.btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; }
+.btn-danger { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #f87171; }
+.btn-secondary { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); }
+
+/* テーブル 配色強化版 */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--bg2); width: 100%; }
+table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+th, td { border: 1px solid var(--border); padding: 10px 8px; text-align: center; }
+th { background: var(--bg3); color: var(--text2); font-size: 11px; position: sticky; top: 0; z-index: 5; border-bottom: 2px solid var(--accent); }
+td.md-info { text-align: left; background: var(--bg3); width: 180px; position: sticky; left: 0; z-index: 10; border-right: 3px solid var(--accent); }
+.md-name { font-weight: 700; color: inherit; display: block; font-size: 13px; }
+
+td.cell-done { background: var(--done); border: 2px solid var(--done-border) !important; cursor: pointer; color: var(--done-text); }
+td.cell-notdone { background: var(--notdone); border: 2px solid var(--notdone-border) !important; cursor: pointer; color: var(--notdone-text); }
+.cell-mark { font-size: 20px; font-weight: 900; }
+.cell-time { font-size: 9px; color: #fff; display: block; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+
+.ct-badge { display: inline-block; padding: 1px 4px; border-radius: 4px; font-size: 9px; font-weight: 700; color:#fff; }
+.ct-daily { background: var(--daily); } .ct-3days { background: var(--threedays); } .ct-weekly { background: var(--weekly); }
+
+td.cell-na { background: var(--bg); border: 2px solid var(--border) !important; color: #555; cursor: pointer; }
+td.cell-na .cell-mark { color: #444; }
+
+/* MVP */
+.mvp-hero { position: relative; padding: 24px; background: linear-gradient(180deg, var(--bg3) 0%, var(--bg) 100%); border-radius: 16px; border: 1.5px solid var(--accent); margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; }
+.global-counter { font-size: 60px; font-weight: 950; color: var(--gold); line-height: 1; text-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
+.stat-box { background: var(--bg3); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
+.stat-val { font-size: 18px; font-weight: bold; color: var(--gold); }
+
+[contenteditable="true"] { outline: 1px dashed var(--accent2); background: rgba(0,0,0,0.05); border-radius: 4px; padding: 2px 4px; }
+[contenteditable="true"]:focus { outline: 2px solid var(--gold); background: rgba(0,0,0,0.1); }
+
+.sortable-item { display: flex; align-items: center; gap: 10px; background: var(--bg3); padding: 12px; margin-bottom: 6px; border-radius: 8px; cursor: move; border: 1px solid var(--border); }
+.sortable-item:hover { border-color: var(--accent); }
+.sortable-item.dragging { opacity: 0.3; }
+
+#toast { position: fixed; bottom: 20px; right: 20px; background: var(--accent); color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; opacity:0; z-index: 1000; transition: 0.3s; pointer-events: none; }
+#toast.show { opacity: 1; }
+
+.btn-theme { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #ccc; cursor: pointer; transition: 0.2s; }
+.btn-theme.active { border-color: #fff; transform: scale(1.1); box-shadow: 0 0 10px var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚔️ RO MD管理ツール</h1>
+  <div style="font-size: 11px; color: var(--gold); font-weight:bold;">ver3.2</div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="ui.tab('md')">📋 MD進捗</button>
+  <button class="tab-btn" onclick="ui.tab('mvp')">👑 MVPｃ獲得</button>
+  <button class="tab-btn" onclick="ui.tab('chars')">👤 キャラ設定</button>
+  <button class="tab-btn" onclick="ui.tab('mds')">🗓️ MD設定</button>
+  <button class="tab-btn" onclick="ui.tab('backup')">💾 ツール</button>
+  <button class="tab-btn" onclick="ui.tab('guide')">📖 使い方</button>
+</div>
+
+<main>
+  <!-- MD進捗 -->
+  <div class="tab-panel active" id="panel-md">
+    <div id="tableArea"></div>
+  </div>
+
+  <!-- MVP管理 -->
+  <div class="tab-panel" id="panel-mvp">
+    <div class="mvp-hero">
+      <div id="lifetimeSummary" style="position: absolute; right: 24px; top: 24px; text-align: left; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--border); min-width: 280px; z-index: 10;">
+        <div style="color:var(--gold); font-size:11px; font-weight:bold; margin-bottom:8px; border-bottom: 1px solid var(--border); padding-bottom:4px;">🏆 全期間累計サマリー</div>
+        <div id="lifetimeStats" style="font-size: 13px; color: var(--text);"></div>
+      </div>
+      
+      <div style="text-align: center;">
+        <div style="color:var(--text2); font-size:12px; margin-bottom:8px; font-weight:bold;">排出からの累計討伐数</div>
+        <div class="global-counter" id="globalKills">0</div>
+        
+        <div style="margin-top: 25px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="ctrl.addKills(1)">+1 討伐</button>
+          <button class="btn btn-gold" onclick="ctrl.addNowHist()">記録してリセット</button>
+          <button class="btn btn-secondary btn-sm" onclick="ctrl.addEmptyHist()">記入用空行追加</button>
+        </div>
+      </div>
+    </div>
+    
+    <style>
+      @media (max-width: 1100px) {
+        .mvp-hero { padding-top: 180px !important; }
+        #lifetimeSummary { position: absolute; top: 15px; right: 15px; left: 15px; width: auto; min-width: 0; }
+      }
+    </style>
+    
+    <div class="card">
+      <h2>📊 年間集計記録</h2>
+      <div id="statArea" class="stat-grid"></div>
+    </div>
+
+    <div class="card">
+      <h2>👑 MVPｃ獲得履歴 (時系列順・直接編集可能)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>排出日</th><th>カード名</th><th>討伐数</th><th>売却額</th><th>操作</th></tr></thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- キャラ設定 -->
+  <div class="tab-panel" id="panel-chars">
+    <div class="card" style="border: 1px solid var(--gold);">
+      <h2>🤖 JSON 一括インポート</h2>
+      <textarea id="bulkJson" style="width:100%; height:120px; font-family:monospace; font-size:11px; margin-bottom:10px;">[
+  {
+    "name": "キャラクター名",
+    "order": 0
+  },
+  {
+    "name": "キャラクター名2",
+    "order": 1
+  }
+]</textarea>
+      <button class="btn btn-gold" onclick="ctrl.bulkAdd()">リストを一括登録する</button>
+    </div>
+    <div class="card">
+      <h2>👤 ドラッグ並び替え / キャラ手動追加</h2>
+      <div id="charList" ondragover="ui.allowDrop(event)" ondrop="ctrl.handleDrop(event, 'chars')"></div>
+      <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px; display:flex; gap:10px;">
+        <input id="cName_m" placeholder="新キャラ名" style="background:var(--bg3); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:6px; flex:1;">
+        <button class="btn btn-primary" onclick="ctrl.addSingleChar()">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MD設定 -->
+  <div class="tab-panel" id="panel-mds">
+    <div class="card" style="border: 1px solid var(--accent2);">
+      <h2>🗓️ MD 個別追加フォーム</h2>
+      <div class="form-row">
+        <div class="form-group"><label>MD名</label><input id="mdName"></div>
+        <div class="form-group"><label>CT</label><select id="mdCt"><option value="daily">毎日 05:00</option><option value="3days">3日後 05:00</option><option value="weeklyTue12">火曜 12:00</option></select></div>
+        <div class="form-group"><label>MVP数</label><input id="mdMvp" type="number" value="1" style="width:60px"></div>
+        <button class="btn btn-primary" onclick="ctrl.saveMD()">MDを新規登録</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📋 ドラッグ並び替え / MD編集</h2>
+      <div id="mdList" ondragover="ui.allowDrop(event)" ondrop="ctrl.handleDrop(event, 'mds')"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:15px" onclick="ctrl.loadDefaultMDs()">公式MDリストを適用</button>
+    </div>
+  </div>
+
+  <!-- ツール -->
+  <div class="tab-panel" id="panel-backup">
+    <div class="card">
+      <h2>🎨 テーマ切替</h2>
+      <div style="display:flex; flex-wrap:wrap; gap:15px; align-items:center;">
+        <button class="btn-theme" id="theme-deep" style="background:#0f0e17" onclick="ctrl.setTheme('deep')"></button>
+        <button class="btn-theme" id="theme-ocean" style="background:#0a1128" onclick="ctrl.setTheme('ocean')"></button>
+        <button class="btn-theme" id="theme-forest" style="background:#051410" onclick="ctrl.setTheme('forest')"></button>
+        <button class="btn-theme" id="theme-blood" style="background:#1a0404" onclick="ctrl.setTheme('blood')"></button>
+        <button class="btn-theme" id="theme-snow" style="background:#fff" onclick="ctrl.setTheme('snow')"></button>
+        <button class="btn-theme" id="theme-ivory" style="background:#fdfcf0" onclick="ctrl.setTheme('ivory')"></button>
+      </div>
+    </div>
+    <div class="card">
+      <button class="btn btn-gold btn-sm" onclick="ctrl.export()">JSON出力</button>
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('importFile').click()">JSON読込</button>
+      <input type="file" id="importFile" style="display:none" onchange="ctrl.import(event)">
+      <button class="btn btn-danger btn-sm" onclick="ctrl.clearAll()">全消去</button>
+    </div>
+  </div>
+
+  <!-- 使い方 -->
+  <div class="tab-panel" id="panel-guide">
+    <div class="card">
+      <h2>🚀 初期設定の方法</h2>
+      <p style="font-size: 14px; margin-bottom: 10px;">本ツールを使い始めるためのキャラクター登録手順です。</p>
+      <div style="background: var(--bg3); padding: 15px; border-radius: 8px; border: 1px solid var(--accent);">
+        <h3 style="font-size: 13px; color: var(--gold); margin-bottom: 8px;">1. RO公式からキャラ情報を取得</h3>
+        <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">
+          Ragnarok Online公式の「キャラクター情報」ページを開き、キャラクター一覧が見える状態でスクリーンショットを撮影します。
+        </p>
+        <h3 style="font-size: 13px; color: var(--gold); margin-bottom: 8px;">2. AI（Gemini等）でJSON変換</h3>
+        <p style="font-size: 12px; color: var(--text2); margin-bottom: 5px;">以下のプロンプトを添えて、スクリーンショットをAIに投稿してください：</p>
+        <div style="position: relative;">
+          <button class="btn btn-secondary btn-sm" style="position: absolute; right: 8px; top: 8px; padding: 4px 8px; font-size: 10px;" onclick="ctrl.copyPrompt()">コピー</button>
+          <pre id="geminiPrompt" style="background: #000; color: #4ade80; padding: 10px; border-radius: 4px; font-size: 11px; overflow-x: auto; white-space: pre-wrap;">この画像に写っているキャラクター名をすべて抽出し、以下のJSON形式で出力してください。
+余計な解説は不要です。コードブロックのみ出力してください。
+
+[
+  { "name": "キャラ名1", "order": 0 },
+  { "name": "キャラ名2", "order": 1 }
+]</pre>
+        </div>
+        <h3 style="font-size: 13px; color: var(--gold); margin-top: 15px; margin-bottom: 8px;">3. ツールに貼り付け</h3>
+        <p style="font-size: 12px; color: var(--text2);">
+          出力されたJSONをコピーし、本ツールの「👤 キャラ設定」タブにある「JSON 一括インポート」欄に貼り付けて「一括登録」ボタンを押せば完了です。
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🗓️ MD設定について</h2>
+      <div style="background: var(--bg3); padding: 12px; border-radius: 8px;">
+        <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">
+          「🗓️ MD設定」タブでは、管理したいMDの追加や編集が可能です。
+        </p>
+        <ul style="font-size: 12px; color: var(--text2); padding-left: 20px; line-height: 1.6;">
+          <li><b>MD名 / MVP数:</b> MD完了時に加算される討伐数を設定できます。</li>
+          <li><b>CT (クールタイム):</b> 毎日05:00、3日後05:00、火曜12:00のいずれかを選択すると、チェックが自動的に外れるようになります。</li>
+          <li><b>並び替え:</b> ドラッグ＆ドロップで表示順を自由に変更できます。</li>
+          <li><b>公式MDリスト適用:</b> 主要なMDセットをワンクリックで登録できます。</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <div class="card">
+      <h2>🎮 通常利用方法</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="background: var(--bg3); padding: 12px; border-radius: 8px;">
+          <h3 style="font-size: 13px; color: var(--accent2); margin-bottom: 5px;">📋 MD進捗の管理</h3>
+          <p style="font-size: 12px; color: var(--text2);">
+            <b style="color:var(--done-text)">左クリック: ✔ (完了)</b> ↔ <b style="color:var(--notdone-text)">× (未完了)</b><br>
+            <b style="color:#777">右クリック: － (対象外)</b> の切替<br>
+            完了状態(✔)にすると、設定されたMVP数が自動的に「討伐数」に加算されます。
+          </p>
+        </div>
+        <div style="background: var(--bg3); padding: 12px; border-radius: 8px;">
+          <h3 style="font-size: 13px; color: var(--accent2); margin-bottom: 5px;">👑 MVPカードの記録</h3>
+          <p style="font-size: 12px; color: var(--text2);">
+            カードが排出されたら「記録してリセット」を押すと、現在の討伐数を引き継いで履歴に保存されます。<br>
+            「売却額」などは履歴一覧から直接編集可能です。
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const DB = {
+  name: "roMdManager_v3_1", version: 1, db: null,
+  init() {
+    return new Promise((res) => {
+      const r = indexedDB.open(this.name, this.version);
+      r.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        d.createObjectStore("chars", { keyPath: "id", autoIncrement: true });
+        d.createObjectStore("mds", { keyPath: "id", autoIncrement: true });
+        const p = d.createObjectStore("progs", { keyPath: "id", autoIncrement: true });
+        p.createIndex("charMd", ["charId", "mdId"], { unique: true });
+        d.createObjectStore("kv", { keyPath: "key" });
+        d.createObjectStore("hist", { keyPath: "id", autoIncrement: true });
+      };
+      r.onsuccess = (e) => { this.db = e.target.result; res(); };
+    });
+  },
+  async getAll(s) { const tx = this.db.transaction(s); return new Promise(res => { const r = tx.objectStore(s).getAll(); r.onsuccess = () => res(r.result); }); },
+  async put(s, data) { const tx = this.db.transaction(s, "readwrite"); return new Promise(res => { tx.objectStore(s).put(data); tx.oncomplete = () => res(); }); },
+  async del(s, id) { const tx = this.db.transaction(s, "readwrite"); return new Promise(res => { tx.objectStore(s).delete(id); tx.oncomplete = () => res(); }); }
+};
+
+const THEMES = {
+  deep: { bg: "#0f0e17", bg2: "#1a1927", bg3: "#242336", bord: "#3a3858", acc: "#7c6af7", acc2: "#a78bfa", done: "#064e3b", d_bord: "#10b981", nd: "#2d1616", nd_bord: "#ef4444", txt: "#e2e0ff", txt2: "#9895b5" },
+  ocean: { bg: "#0a1128", bg2: "#121d3d", bg3: "#1a2a5a", bord: "#31448b", acc: "#3b82f6", acc2: "#60a5fa", done: "#0c3d3d", d_bord: "#00ffff", nd: "#3d1a1a", nd_bord: "#ff4444", txt: "#e2e0ff", txt2: "#9895b5" },
+  forest: { bg: "#051410", bg2: "#0c2b23", bg3: "#1a3d34", bord: "#2d5a50", acc: "#10b981", acc2: "#34d399", done: "#0d3d1a", d_bord: "#10b981", nd: "#3d1616", nd_bord: "#ef4444", txt: "#e2e0ff", txt2: "#9895b5" },
+  blood: { bg: "#1a0404", bg2: "#2e0f0f", bg3: "#451414", bord: "#6e2929", acc: "#f43f5e", acc2: "#fb7185", done: "#3d2a0d", d_bord: "#f59e0b", nd: "#3d0f0f", nd_bord: "#f43f5e", txt: "#e2e0ff", txt2: "#9895b5" },
+  snow: { bg: "#f0f4f8", bg2: "#ffffff", bg3: "#e1e8ef", bord: "#cbd5e1", acc: "#3b82f6", acc2: "#64748b", done: "#d1fae5", d_bord: "#059669", nd: "#fee2e2", nd_bord: "#dc2626", txt: "#0f172a", txt2: "#475569" },
+  ivory: { bg: "#fdfcf0", bg2: "#ffffff", bg3: "#f5f2e0", bord: "#d4c4a8", acc: "#d97706", acc2: "#9d6b53", done: "#ecfccb", d_bord: "#65a30d", nd: "#fef2f2", nd_bord: "#ef4444", txt: "#4338ca", txt2: "#78350f" }
+};
+
+const ui = {
+  tab(n) { document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active")); document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active")); document.getElementById("panel-"+n).classList.add("active"); if(event) event.target.classList.add("active"); },
+  toast(m) { const e = document.getElementById("toast"); e.textContent = m; e.classList.add("show"); setTimeout(() => e.classList.remove("show"), 2000); },
+  allowDrop(e) { e.preventDefault(); }
+};
+
+const ctrl = {
+  async refresh() { this.renderTable(); this.renderLists(); this.renderHistory(); this.renderKills(); },
+  // CT判定: 指定時間を過ぎたものは自動リセット
+  async checkClearing(doRender = true) {
+    const prg = await DB.getAll("progs");
+    const nowJST = this.getNowJST().getTime();
+    const toReset = prg.filter(p => p.isCompleted && p.nextReset && p.nextReset < nowJST);
+    
+    if (toReset.length === 0) return false;
+
+    const tx = DB.db.transaction(["progs"], "readwrite");
+    const pS = tx.objectStore("progs");
+    toReset.forEach(p => {
+      p.isCompleted = false;
+      p.status = 0; // 未完了に戻す
+      p.nextReset = null;
+      pS.put(p);
+    });
+    
+    if (doRender) tx.oncomplete = () => this.renderTable();
+    return true;
+  },
+  async renderTable() {
+    await this.checkClearing(false);
+    const chars = (await DB.getAll("chars")).sort((a,b) => (a.order||0) - (b.order||0));
+    const mds = (await DB.getAll("mds")).sort((a,b) => (a.order||0) - (b.order||0));
+    const prg = await DB.getAll("progs");
+    
+    if(!chars.length) { document.getElementById("tableArea").innerHTML = "<div class='card' style='text-align:center;'>キャラを登録してください</div>"; return; }
+    let html = `<table><thead><tr><th style='width:180px;position:sticky;left:0;z-index:20;background:var(--bg3);'>MD一覧 / キャラクタ</th>`;
+    chars.forEach(ch => html += `<th>${ch.name}</th>`);
+    html += "</tr></thead><tbody>";
+    mds.forEach(md => {
+      html += `<tr><td class='md-info'><span class='md-name'>${md.name}</span><span class='ct-badge ${this.getCls(md.ctType)}'>${this.getCtLabel(md.ctType)}</span></td>`;
+      chars.forEach(ch => {
+        const p = prg.find(x => x.charId === ch.id && x.mdId === md.id);
+        const s = p?.status !== undefined ? p.status : (p?.isCompleted ? 1 : 0);
+        let cls = 'cell-notdone', mark = '×', timeStr = "";
+        if (s === 1) { cls = 'cell-done'; mark = '✔'; timeStr = new Date(p.nextReset).toLocaleString([],{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+        else if (s === 2) { cls = 'cell-na'; mark = '－'; }
+        
+        html += `<td class="${cls}" onclick="ctrl.toggle(${ch.id}, ${md.id}, '${md.ctType}', ${md.mvp})" oncontextmenu="ctrl.toggleNA(event, ${ch.id}, ${md.id}, ${md.mvp})">
+          <span class='cell-mark'>${mark}</span><span class='cell-time'>${timeStr}</span></td>`;
+      });
+      html += "</tr>";
+    });
+    document.getElementById("tableArea").innerHTML = html + "</tbody></table>";
+  },
+  async toggle(cid, mid, ct, mvp) {
+    const tx = DB.db.transaction(["progs","kv"], "readwrite"); const pS = tx.objectStore("progs");
+    pS.index("charMd").get([cid, mid]).onsuccess = (e) => {
+      const r = e.target.result;
+      let curS = r?.status !== undefined ? r.status : (r?.isCompleted ? 1 : 0);
+      // 左クリック: 完了(1) ↔ 未完了(0)
+      let nextS = (curS === 1) ? 0 : 1;
+      
+      const isD = nextS === 1;
+      const d = { charId: cid, mdId: mid, status: nextS, isCompleted: isD, nextReset: isD ? this.calcReset(ct) : null };
+      if(r?.id) d.id = r.id; pS.put(d);
+
+      // カウント加減
+      if(mvp > 0) {
+        const kv = tx.objectStore("kv");
+        kv.get("kills").onsuccess = (ev) => {
+          let val = ev.target.result?.val || 0;
+          if (nextS === 1) val += mvp; // 完了にした
+          else if (curS === 1) val = Math.max(0, val - mvp); // 完了から戻した
+          kv.put({ key: "kills", val });
+        };
+      }
+    };
+    tx.oncomplete = () => this.refresh();
+  },
+  async toggleNA(e, cid, mid, mvp) {
+    if (e) e.preventDefault();
+    const tx = DB.db.transaction(["progs", "kv"], "readwrite"); const pS = tx.objectStore("progs");
+    pS.index("charMd").get([cid, mid]).onsuccess = (ev) => {
+      const r = ev.target.result;
+      let curS = r?.status !== undefined ? r.status : (r?.isCompleted ? 1 : 0);
+      let nextS = (curS === 2) ? 0 : 2;
+      const d = { charId: cid, mdId: mid, status: nextS, isCompleted: false, nextReset: null };
+      if(r?.id) d.id = r.id; pS.put(d);
+      
+      if (curS === 1 && nextS !== 1 && mvp > 0) {
+        const kv = tx.objectStore("kv");
+        kv.get("kills").onsuccess = (e2) => {
+          let val = e2.target.result?.val || 0;
+          kv.put({ key: "kills", val: Math.max(0, val - mvp) });
+        };
+      }
+    };
+    tx.oncomplete = () => this.refresh();
+  },
+  async renderKills() { const kvs = await DB.getAll("kv"); document.getElementById("globalKills").textContent = (kvs.find(x => x.key === 'kills')?.val || 0).toLocaleString(); },
+  async addKills(n) { const tx = DB.db.transaction("kv", "readwrite"); const s = tx.objectStore("kv"); s.get("kills").onsuccess = (e) => s.put({ key: "kills", val: (e.target.result?.val || 0) + n }); tx.oncomplete = () => this.refresh(); },
+  async addEmptyHist() { await DB.put("hist", { name: "", kills: 0, price: 0, date: Date.now() }); this.refresh(); },
+  async addNowHist() { const c = (await DB.getAll("kv")).find(x => x.key === "kills")?.val || 0; await DB.put("hist", { name: "カード獲得", kills: c, price: 0, date: Date.now() }); await DB.put("kv", { key: "kills", val: 0 }); this.refresh(); ui.toast("記録しました"); },
+  async renderHistory() {
+    const hist = (await DB.getAll("hist")).sort((a,b) => a.date - b.date);
+    const fields = ['dateStr', 'name', 'kills', 'price'];
+    document.getElementById("histBody").innerHTML = hist.map((h, rI) => `<tr>
+      ${fields.map((f, cI) => `<td contenteditable="true" onblur="ctrl.saveH(${h.id}, '${f}', this.innerText)" onpaste="ctrl.handlePaste(event, ${rI}, ${cI})">${f==='dateStr'?new Date(h.date).toLocaleDateString():(f==='price'?h.price.toLocaleString():h[f]||'')}</td>`).join("")}
+      <td><button class='btn btn-danger btn-sm' onclick='ctrl.delHist(${h.id})'>✗</button></td></tr>`).join("");
+    this.renderStats(hist);
+  },
+  renderStats(hist) {
+    const years = {};
+    hist.forEach(h => { const y = new Date(h.date).getFullYear(); if(!years[y]) years[y]={count:0, kills:0, zenny:0}; years[y].count++; years[y].kills += h.kills; years[y].zenny += h.price; });
+    document.getElementById("statArea").innerHTML = Object.keys(years).sort((a,b)=>b-a).map(y => `
+      <div class='stat-box'><div style='font-size:12px;font-weight:bold;margin-bottom:5px'>📅 ${y}年 合計</div>
+      <div>枚数: <span class='stat-val'>${years[y].count}枚</span></div><div>討伐: <span class='stat-val'>${years[y].kills.toLocaleString()}体</span></div>
+      <div>Zeny: <span class='stat-val'>${years[y].zenny.toLocaleString()}z</span></div></div>`).join("");
+
+    // 全期間累計サマリーの計算
+    const globalKills = Number(document.getElementById("globalKills").textContent.replace(/,/g, '')) || 0;
+    const total = {
+      count: hist.length,
+      kills: hist.reduce((sum, h) => sum + (Number(h.kills) || 0), 0) + globalKills,
+      zenny: hist.reduce((sum, h) => sum + (Number(h.price) || 0), 0)
+    };
+    const avgKills = total.count > 0 ? Math.floor(total.kills / total.count) : 0;
+    const avgZenny = total.count > 0 ? Math.floor(total.zenny / total.count) : 0;
+
+    document.getElementById("lifetimeStats").innerHTML = `
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div>累計枚数: <b style="color:var(--gold)">${total.count} 枚</b></div>
+        <div>累計討伐: <b style="color:var(--gold)">${total.kills.toLocaleString()} 体</b></div>
+        <div style="grid-column: span 2;">累計売却: <b style="color:var(--gold)">${total.zenny.toLocaleString()} z</b></div>
+        <div style="grid-column: span 2; margin-top: 5px; padding-top: 5px; border-top: 1px dashed var(--border); font-size: 11px;">
+          1枚あたりの平均: <br>
+          討伐 <b style="color:var(--accent2)">${avgKills.toLocaleString()} 体</b> / 
+          売却 <b style="color:var(--accent2)">${avgZenny.toLocaleString()} z</b>
+        </div>
+      </div>
+    `;
+  },
+  async handlePaste(e, rI, cI) {
+    e.preventDefault(); const text = e.clipboardData.getData('text/plain'); const rows = text.trim().split(/\r?\n/).map(l => l.split('\t'));
+    const hL = (await DB.getAll("hist")).sort((a,b) => a.date - b.date); const fields = ['dateStr', 'name', 'kills', 'price'];
+    for (let r=0; r<rows.length; r++) {
+      let tH = hL[rI + r]; if (!tH) { tH = { name: "", kills: 0, price: 0, date: Date.now() }; await DB.put("hist", tH); const up = await DB.getAll("hist"); tH = up.find(x => !hL.some(old => old.id === x.id)); hL.push(tH); }
+      for (let c=0; c<rows[r].length; c++) { let name = fields[cI + c]; if (!name) continue; let val = rows[r][c];
+        if (name === 'dateStr') tH.date = new Date(val).getTime() || tH.date; else if (name === 'kills' || name === 'price') tH[name] = Number(val.replace(/,/g,'')) || 0; else tH[name] = val;
+      }
+      await DB.put("hist", tH);
+    }
+    this.refresh(); ui.toast("貼付け完了");
+  },
+  async saveH(id, f, v) { const hists = await DB.getAll("hist"); const h = hists.find(x => x.id === id); if(!h) return;
+    if(f==='dateStr') h.date = new Date(v).getTime() || h.date; else if(f==='kills'||f==='price') h[f]=Number(v.replace(/,/g, ''))||0; else h[f]=v;
+    await DB.put("hist", h); this.refresh();
+  },
+  async delHist(id) { await DB.del("hist", id); this.refresh(); },
+
+  async setTheme(t) {
+    const v = THEMES[t]; document.getElementById("themeStyle").innerHTML = `:root {
+      --bg: ${v.bg}; --bg2: ${v.bg2}; --bg3: ${v.bg3}; --border: ${v.bord}; --accent: ${v.acc}; --accent2: ${v.acc2};
+      --done: ${v.done}; --done-text: #4ade80; --done-border: ${v.d_bord}; --text: ${v.txt}; --text2: ${v.txt2};
+      --notdone: ${v.nd}; --notdone-text: #f87171; --notdone-border: ${v.nd_bord}; --gold: #f59e0b;
+      --daily: #3b82f6; --threedays: #8b5cf6; --weekly: #ec4899;
+    }`;
+    await DB.put("kv", { key: "theme", val: t });
+    document.querySelectorAll(".btn-theme").forEach(b => b.classList.remove("active")); document.getElementById("theme-"+t).classList.add("active");
+  },
+
+  handleDragStart(e, type, id) { e.dataTransfer.setData("text/plain", JSON.stringify({type, id})); e.currentTarget.classList.add("dragging"); },
+  async handleDrop(e, type) {
+    e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("text/plain")); if(d.type !== type) return;
+    const items = (await DB.getAll(type)).sort((a,b) => (a.order||0) - (b.order||0));
+    const dId = Number(d.id); const tar = e.target.closest(".sortable-item"); if(!tar) return;
+    const tId = Number(tar.dataset.id); if(dId === tId) return;
+    const dIdx = items.findIndex(x => x.id === dId); const tIdx = items.findIndex(x => x.id === tId);
+    items.splice(tIdx, 0, items.splice(dIdx, 1)[0]);
+    for(let i=0; i<items.length; i++) { items[i].order = i; await DB.put(type, items[i]); }
+    this.refresh();
+  },
+
+  async renderLists() {
+    const chars = (await DB.getAll("chars")).sort((a,b) => (a.order||0) - (b.order||0));
+    document.getElementById("charList").innerHTML = chars.map(c => `<div class='sortable-item' draggable='true' data-id='${c.id}' ondragstart='ctrl.handleDragStart(event, "chars", ${c.id})' ondragend='event.currentTarget.classList.remove("dragging")'>
+      <span contenteditable="true" onblur="ctrl.saveCN(${c.id}, this.innerText)">${c.name}</span><button class='btn btn-danger btn-sm' style='margin-left:auto' onclick='ctrl.delChar(${c.id})'>✗</button></div>`).join("");
+    const mds = (await DB.getAll("mds")).sort((a,b) => (a.order||0) - (b.order||0));
+    document.getElementById("mdList").innerHTML = mds.map(m => `<div class='sortable-item' draggable='true' data-id='${m.id}' ondragstart='ctrl.handleDragStart(event, "mds", ${m.id})' ondragend='event.currentTarget.classList.remove("dragging")'>
+      <span contenteditable="true" onblur="ctrl.saveMN(${m.id}, this.innerText)" style="font-weight:bold">${m.name}</span> (MVP:<span contenteditable="true" onblur="ctrl.saveMM(${m.id}, this.innerText)">${m.mvp}</span>)
+      <button class='btn btn-danger btn-sm' style='margin-left:auto' onclick='ctrl.delMd(${m.id})'>✗</button></div>`).join("");
+  },
+  async saveCN(id, v) { const c = (await DB.getAll("chars")).find(x=>x.id===id); c.name=v; await DB.put("chars",c); this.refresh(); },
+  async saveMN(id, v) { const m = (await DB.getAll("mds")).find(x=>x.id===id); m.name=v; await DB.put("mds",m); this.refresh(); },
+  async saveMM(id, v) { const m = (await DB.getAll("mds")).find(x=>x.id===id); m.mvp=Number(v)||0; await DB.put("mds",m); this.refresh(); },
+  async delChar(id) { await DB.del("chars", id); this.refresh(); },
+  async delMd(id) { await DB.del("mds", id); this.refresh(); },
+  async addSingleChar() { if(!document.getElementById("cName_m").value) return; await DB.put("chars", { name: document.getElementById("cName_m").value, order: 999 }); document.getElementById("cName_m").value=""; this.refresh(); },
+  async saveMD() { if(!document.getElementById("mdName").value) return; await DB.put("mds", { name: document.getElementById("mdName").value, ctType: document.getElementById("mdCt").value, mvp: Number(document.getElementById("mdMvp").value) || 0, order: 999 }); document.getElementById("mdName").value = ""; this.refresh(); },
+  async loadDefaultMDs() {
+    const list = [{id:12,name:"呪いの剣士",ctType:"daily",mvp:1},{id:13,name:"時間に忘れられた飼育場",ctType:"daily",mvp:1},{name:"呪われた次元（3rd）",ctType:"daily",mvp:3,id:14},{name:"タナトスの記憶",ctType:"daily",mvp:1,id:15},{name:"欺瞞の別荘",ctType:"weeklyTue12",mvp:2,id:16},{name:"シミュレーション戦闘",ctType:"weeklyTue12",mvp:1,id:17},{name:"封じられた不死者",ctType:"weeklyTue12",mvp:1,id:18},{name:"変えられない最後",ctType:"weeklyTue12",mvp:1,id:19},{name:"悔恨の墓",ctType:"weeklyTue12",mvp:2,id:20},{name:"星座の塔",ctType:"weeklyTue12",mvp:17,id:21},{name:"生体工学研究所の記録",ctType:"3days",mvp:1,id:22},{name:"生命の殿堂",ctType:"weeklyTue12",mvp:1,id:23},{name:"特異点 生体工学研究所",ctType:"weeklyTue12",mvp:1,id:24},{name:"特異点 名もなき島",ctType:"weeklyTue12",mvp:2,id:25},{id:26,name:"呪われた次元（4th）",ctType:"weeklyTue12",mvp:3},{name:"ファロス燈台地下迷宮",ctType:"weeklyTue12",mvp:10,id:27},{name:"夢幻の迷宮",ctType:"weeklyTue12",mvp:22,id:28}];
+    for(let i=0; i<list.length; i++){ list[i].order=i; await DB.put("mds", list[i]); } this.refresh(); ui.toast("公式MDを適用しました");
+  },
+  async export() { const d = { chars: await DB.getAll("chars"), mds: await DB.getAll("mds"), progs: await DB.getAll("progs"), kv: await DB.getAll("kv"), hist: await DB.getAll("hist") }; const a = document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)],{type:"application/json"})); a.download="ro-backup.json"; a.click(); },
+  async import(e) { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = async (ev) => { try { const d=JSON.parse(ev.target.result); if(d.chars) for(const c of d.chars) await DB.put("chars",c); if(d.mds) for(const m of d.mds) await DB.put("mds",m); if(d.progs) for(const p of d.progs) await DB.put("progs",p); if(d.kv) for(const k of d.kv) await DB.put("kv",k); if(d.hist) for(const h of d.hist) await DB.put("hist",h); location.reload(); } catch(ex){} }; r.readAsText(f); },
+  async clearAll() { indexedDB.deleteDatabase(DB.name); location.reload(); },
+  getCls(t) { return t === 'daily' ? 'ct-daily' : t === '3days' ? 'ct-3days' : 'ct-weekly'; },
+  getCtLabel(t) { return t === 'daily' ? '毎日 5時' : t === '3days' ? '3日 5時' : '火曜 12時'; },
+  // 日本時間（JST）の現在時刻を取得
+  getNowJST() {
+    const now = new Date();
+    const jstOffset = 9 * 60 * 60 * 1000; // UTC+9
+    const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+    return new Date(utc + jstOffset);
+  },
+  calcReset(t) {
+    const now = this.getNowJST();
+    let r = new Date(now);
+    
+    // 火曜 12:00 の計算
+    if (t === 'weeklyTue12') {
+      r.setHours(12, 0, 0, 0);
+      // diff: 火曜日(2)までの日数。当日が火曜なら0
+      let diff = (2 - r.getDay() + 7) % 7;
+      r.setDate(r.getDate() + diff);
+      // 計算した時間が既に過ぎている場合は来週へ
+      if (r <= now) r.setDate(r.getDate() + 7);
+      return r.getTime();
+    }
+    
+    // 毎日 / 3日後 (05:00ベース)
+    r.setHours(5, 0, 0, 0);
+    // 当日5時を過ぎていれば、基準となる「次の5時」は翌日
+    if (r <= now) r.setDate(r.getDate() + 1);
+    
+    if (t === 'daily') return r.getTime();
+    
+    if (t === '3days') {
+      // 次の「毎日05:00」リセットを1回目とし、そこから3日目（72時間後）の05:00に設定
+      // 例: 18日00:00チェック -> 基準18日05:00 -> 3日後は 21日05:00
+      r.setDate(r.getDate() + 3);
+      return r.getTime();
+    }
+  },
+  async copyPrompt() {
+    const text = document.getElementById("geminiPrompt").innerText;
+    navigator.clipboard.writeText(text).then(() => ui.toast("プロンプトをコピーしました"));
+  },
+  async bulkAdd() { try { const list = JSON.parse(document.getElementById("bulkJson").value); for(const c of list) await DB.put("chars", c); document.getElementById("bulkJson").value=""; this.refresh(); ui.toast("一括登録完了"); } catch(e){ alert("解析失敗"); } }
+};
+DB.init().then(async () => {
+  const theme = (await DB.getAll("kv")).find(x=>x.key==="theme")?.val || "deep";
+  ctrl.setTheme(theme); ctrl.refresh();
+  // 自動解除タイマー起動 (1分ごと)
+  setInterval(() => ctrl.checkClearing(), 60000);
+});
+</script>
+</body>
+</html>
