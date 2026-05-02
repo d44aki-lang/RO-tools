@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RO MD管理ツール ver3.2</title>
+<title>RO MD管理ツール ver3.3</title>
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -44,6 +44,7 @@ main { padding: 15px; width: 100%; transition: 0.3s; }
 .btn-gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; }
 .btn-danger { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #f87171; }
 .btn-secondary { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
 
 /* テーブル 配色強化版 */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--bg2); width: 100%; }
@@ -90,7 +91,7 @@ td.cell-na .cell-mark { color: #444; }
 
 <header>
   <h1>⚔️ RO MD管理ツール</h1>
-  <div style="font-size: 11px; color: var(--gold); font-weight:bold;">ver3.2</div>
+  <div style="font-size: 11px; color: var(--gold); font-weight:bold;">ver3.3</div>
 </header>
 
 <div class="tabs">
@@ -105,6 +106,9 @@ td.cell-na .cell-mark { color: #444; }
 <main>
   <!-- MD進捗 -->
   <div class="tab-panel active" id="panel-md">
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+      <button class="btn btn-secondary btn-sm" onclick="ctrl.toggleTranspose()">🔄 縦横入れ替え</button>
+    </div>
     <div id="tableArea"></div>
   </div>
 
@@ -269,6 +273,7 @@ td.cell-na .cell-mark { color: #444; }
           <p style="font-size: 12px; color: var(--text2);">
             <b style="color:var(--done-text)">左クリック: ✔ (完了)</b> ↔ <b style="color:var(--notdone-text)">× (未完了)</b><br>
             <b style="color:#777">右クリック: － (対象外)</b> の切替<br>
+            <b style="color:var(--accent2)">🔄 縦横入れ替え:</b> 表の行列を入れ替えて表示します。<br>
             完了状態(✔)にすると、設定されたMVP数が自動的に「討伐数」に加算されます。
           </p>
         </div>
@@ -347,31 +352,58 @@ const ctrl = {
     if (doRender) tx.oncomplete = () => this.renderTable();
     return true;
   },
+  async toggleTranspose() {
+    const kvs = await DB.getAll("kv");
+    const cur = kvs.find(x => x.key === "isTransposed")?.val || false;
+    await DB.put("kv", { key: "isTransposed", val: !cur });
+    this.renderTable();
+  },
   async renderTable() {
     await this.checkClearing(false);
     const chars = (await DB.getAll("chars")).sort((a,b) => (a.order||0) - (b.order||0));
     const mds = (await DB.getAll("mds")).sort((a,b) => (a.order||0) - (b.order||0));
     const prg = await DB.getAll("progs");
+    const kvs = await DB.getAll("kv");
+    const isT = kvs.find(x => x.key === "isTransposed")?.val || false;
     
     if(!chars.length) { document.getElementById("tableArea").innerHTML = "<div class='card' style='text-align:center;'>キャラを登録してください</div>"; return; }
-    let html = `<table><thead><tr><th style='width:180px;position:sticky;left:0;z-index:20;background:var(--bg3);'>MD一覧 / キャラクタ</th>`;
-    chars.forEach(ch => html += `<th>${ch.name}</th>`);
-    html += "</tr></thead><tbody>";
-    mds.forEach(md => {
-      html += `<tr><td class='md-info'><span class='md-name'>${md.name}</span><span class='ct-badge ${this.getCls(md.ctType)}'>${this.getCtLabel(md.ctType)}</span></td>`;
-      chars.forEach(ch => {
-        const p = prg.find(x => x.charId === ch.id && x.mdId === md.id);
-        const s = p?.status !== undefined ? p.status : (p?.isCompleted ? 1 : 0);
-        let cls = 'cell-notdone', mark = '×', timeStr = "";
-        if (s === 1) { cls = 'cell-done'; mark = '✔'; timeStr = new Date(p.nextReset).toLocaleString([],{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
-        else if (s === 2) { cls = 'cell-na'; mark = '－'; }
-        
-        html += `<td class="${cls}" onclick="ctrl.toggle(${ch.id}, ${md.id}, '${md.ctType}', ${md.mvp})" oncontextmenu="ctrl.toggleNA(event, ${ch.id}, ${md.id}, ${md.mvp})">
-          <span class='cell-mark'>${mark}</span><span class='cell-time'>${timeStr}</span></td>`;
+    
+    let html = `<table><thead><tr>`;
+    if (!isT) {
+      html += `<th style='width:180px;position:sticky;left:0;z-index:20;background:var(--bg3);'>MD一覧 / キャラ</th>`;
+      chars.forEach(ch => html += `<th>${ch.name}</th>`);
+      html += "</tr></thead><tbody>";
+      mds.forEach(md => {
+        html += `<tr><td class='md-info'><span class='md-name'>${md.name}</span><span class='ct-badge ${this.getCls(md.ctType)}'>${this.getCtLabel(md.ctType)}</span></td>`;
+        chars.forEach(ch => html += this.renderCell(ch, md, prg));
+        html += "</tr>";
       });
-      html += "</tr>";
-    });
+    } else {
+      html += `<th style='width:120px;position:sticky;left:0;z-index:20;background:var(--bg3);'>キャラ / MD</th>`;
+      mds.forEach(md => html += `<th style="font-size:9px; width:80px; min-width:80px;">
+        <div style="margin-bottom:4px; height:24px; overflow:hidden; text-overflow:ellipsis;">${md.name}</div>
+        <span class='ct-badge ${this.getCls(md.ctType)}' style="font-size:8px; padding:0 2px;">${this.getCtLabel(md.ctType)}</span>
+      </th>`);
+      html += "</tr></thead><tbody>";
+      chars.forEach(ch => {
+        html += `<tr><td class='md-info' style="width:120px; border-right:3px solid var(--accent);"><span class='md-name'>${ch.name}</span></td>`;
+        mds.forEach(md => html += this.renderCell(ch, md, prg));
+        html += "</tr>";
+      });
+    }
     document.getElementById("tableArea").innerHTML = html + "</tbody></table>";
+  },
+  renderCell(ch, md, prg) {
+    const p = prg.find(x => x.charId === ch.id && x.mdId === md.id);
+    const s = p?.status !== undefined ? p.status : (p?.isCompleted ? 1 : 0);
+    let cls = 'cell-notdone', mark = '×', timeStr = "";
+    if (s === 1) { 
+      cls = 'cell-done'; mark = '✔'; 
+      timeStr = new Date(p.nextReset).toLocaleString([],{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); 
+    }
+    else if (s === 2) { cls = 'cell-na'; mark = '－'; }
+    return `<td class="${cls}" onclick="ctrl.toggle(${ch.id}, ${md.id}, '${md.ctType}', ${md.mvp})" oncontextmenu="ctrl.toggleNA(event, ${ch.id}, ${md.id}, ${md.mvp})">
+      <span class='cell-mark'>${mark}</span><span class='cell-time'>${timeStr}</span></td>`;
   },
   async toggle(cid, mid, ct, mvp) {
     const tx = DB.db.transaction(["progs","kv"], "readwrite"); const pS = tx.objectStore("progs");
