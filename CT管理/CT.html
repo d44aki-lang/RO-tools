@@ -49,21 +49,25 @@ main { padding: 15px; width: 100%; transition: 0.3s; }
 /* テーブル 配色強化版 */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--bg2); width: 100%; }
 table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-th, td { border: 1px solid var(--border); padding: 10px 8px; text-align: center; }
-th { background: var(--bg3); color: var(--text2); font-size: 11px; position: sticky; top: 0; z-index: 5; border-bottom: 2px solid var(--accent); }
-td.md-info { text-align: left; background: var(--bg3); width: 180px; position: sticky; left: 0; z-index: 10; border-right: 3px solid var(--accent); }
-.md-name { font-weight: 700; color: inherit; display: block; font-size: 13px; }
+th, td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; }
+th { background: var(--bg3); color: var(--text2); font-size: 11px; position: sticky; top: 0; z-index: 5; }
+td.md-info { text-align: left; background: var(--bg3); width: 180px; position: sticky; left: 0; z-index: 10; border-right: 1px solid var(--border); }
+.md-name { font-weight: 700; color: var(--text); display: block; font-size: 13px; margin-bottom: 2px; }
 
-td.cell-done { background: var(--done); border: 2px solid var(--done-border) !important; cursor: pointer; color: var(--done-text); }
-td.cell-notdone { background: var(--notdone); border: 2px solid var(--notdone-border) !important; cursor: pointer; color: var(--notdone-text); }
-.cell-mark { font-size: 20px; font-weight: 900; }
-.cell-time { font-size: 9px; color: #fff; display: block; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+td.cell-done { background: var(--done); cursor: pointer; color: var(--done-text); }
+td.cell-notdone { background: var(--notdone); cursor: pointer; color: var(--notdone-text); }
+.cell-mark { font-size: 18px; font-weight: 900; display: block; }
+.cell-time { font-size: 9px; color: var(--text2); display: block; font-weight: normal; margin-top: 2px; }
 
-.ct-badge { display: inline-block; padding: 1px 4px; border-radius: 4px; font-size: 9px; font-weight: 700; color:#fff; }
-.ct-daily { background: var(--daily); } .ct-3days { background: var(--threedays); } .ct-weekly { background: var(--weekly); }
+.ct-badge { display: inline-block; padding: 1px 4px; border-radius: 4px; font-size: 9px; font-weight: bold; vertical-align: middle; background: rgba(0,0,0,0.1); border: 1px solid currentColor; }
+.ct-daily { color: var(--daily); background: rgba(59, 130, 246, 0.1); } 
+.ct-3days { color: var(--threedays); background: rgba(139, 92, 246, 0.1); } 
+.ct-weekly { color: var(--weekly); background: rgba(236, 72, 153, 0.1); }
 
-td.cell-na { background: var(--bg); border: 2px solid var(--border) !important; color: #555; cursor: pointer; }
-td.cell-na .cell-mark { color: #444; }
+.md-progress { font-size: 10px; color: var(--text2); margin-left: 6px; font-weight: normal; vertical-align: middle; opacity: 0.8; }
+
+td.cell-na { background: var(--bg); color: var(--border); cursor: pointer; }
+td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
 
 /* MVP */
 .mvp-hero { position: relative; padding: 24px; background: linear-gradient(180deg, var(--bg3) 0%, var(--bg) 100%); border-radius: 16px; border: 1.5px solid var(--accent); margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; }
@@ -83,8 +87,13 @@ td.cell-na .cell-mark { color: #444; }
 #toast { position: fixed; bottom: 20px; right: 20px; background: var(--accent); color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; opacity:0; z-index: 1000; transition: 0.3s; pointer-events: none; }
 #toast.show { opacity: 1; }
 
-.btn-theme { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #ccc; cursor: pointer; transition: 0.2s; }
-.btn-theme.active { border-color: #fff; transform: scale(1.1); box-shadow: 0 0 10px var(--accent); }
+.btn-theme { width: 100%; aspect-ratio: 1; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: 0.3s; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.btn-theme:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.btn-theme.active { border-color: var(--gold); transform: scale(1.05); box-shadow: 0 0 15px var(--accent); }
+.theme-swatch-bg { flex: 1; width: 100%; }
+.theme-swatch-acc { height: 35%; width: 100%; }
+.theme-name { font-size: 9px; position: absolute; bottom: 2px; width: 100%; text-align: center; color: #fff; text-shadow: 1px 1px 2px #000; font-weight: bold; pointer-events: none; }
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 12px; margin-top: 15px; }
 </style>
 </head>
 <body>
@@ -202,15 +211,8 @@ td.cell-na .cell-mark { color: #444; }
   <!-- ツール -->
   <div class="tab-panel" id="panel-backup">
     <div class="card">
-      <h2>🎨 テーマ切替</h2>
-      <div style="display:flex; flex-wrap:wrap; gap:15px; align-items:center;">
-        <button class="btn-theme" id="theme-deep" style="background:#0f0e17" onclick="ctrl.setTheme('deep')"></button>
-        <button class="btn-theme" id="theme-ocean" style="background:#0a1128" onclick="ctrl.setTheme('ocean')"></button>
-        <button class="btn-theme" id="theme-forest" style="background:#051410" onclick="ctrl.setTheme('forest')"></button>
-        <button class="btn-theme" id="theme-blood" style="background:#1a0404" onclick="ctrl.setTheme('blood')"></button>
-        <button class="btn-theme" id="theme-snow" style="background:#fff" onclick="ctrl.setTheme('snow')"></button>
-        <button class="btn-theme" id="theme-ivory" style="background:#fdfcf0" onclick="ctrl.setTheme('ivory')"></button>
-      </div>
+      <h2>🎨 テーマ切替 (全30種)</h2>
+      <div id="themeGrid" class="theme-grid"></div>
     </div>
     <div class="card">
       <button class="btn btn-gold btn-sm" onclick="ctrl.export()">JSON出力</button>
@@ -316,12 +318,41 @@ const DB = {
 };
 
 const THEMES = {
-  deep: { bg: "#0f0e17", bg2: "#1a1927", bg3: "#242336", bord: "#3a3858", acc: "#7c6af7", acc2: "#a78bfa", done: "#064e3b", d_bord: "#10b981", nd: "#2d1616", nd_bord: "#ef4444", txt: "#e2e0ff", txt2: "#9895b5" },
-  ocean: { bg: "#0a1128", bg2: "#121d3d", bg3: "#1a2a5a", bord: "#31448b", acc: "#3b82f6", acc2: "#60a5fa", done: "#0c3d3d", d_bord: "#00ffff", nd: "#3d1a1a", nd_bord: "#ff4444", txt: "#e2e0ff", txt2: "#9895b5" },
-  forest: { bg: "#051410", bg2: "#0c2b23", bg3: "#1a3d34", bord: "#2d5a50", acc: "#10b981", acc2: "#34d399", done: "#0d3d1a", d_bord: "#10b981", nd: "#3d1616", nd_bord: "#ef4444", txt: "#e2e0ff", txt2: "#9895b5" },
-  blood: { bg: "#1a0404", bg2: "#2e0f0f", bg3: "#451414", bord: "#6e2929", acc: "#f43f5e", acc2: "#fb7185", done: "#3d2a0d", d_bord: "#f59e0b", nd: "#3d0f0f", nd_bord: "#f43f5e", txt: "#e2e0ff", txt2: "#9895b5" },
-  snow: { bg: "#f0f4f8", bg2: "#ffffff", bg3: "#e1e8ef", bord: "#cbd5e1", acc: "#3b82f6", acc2: "#64748b", done: "#d1fae5", d_bord: "#059669", nd: "#fee2e2", nd_bord: "#dc2626", txt: "#0f172a", txt2: "#475569" },
-  ivory: { bg: "#fdfcf0", bg2: "#ffffff", bg3: "#f5f2e0", bord: "#d4c4a8", acc: "#d97706", acc2: "#9d6b53", done: "#ecfccb", d_bord: "#65a30d", nd: "#fef2f2", nd_bord: "#ef4444", txt: "#4338ca", txt2: "#78350f" }
+  // --- Dark Themes ---
+  deep: { bg: "#0f0e17", bg2: "#1a1927", bg3: "#242336", bord: "#3a3858", acc: "#7c6af7", acc2: "#a78bfa", gold: "#f59e0b", txt: "#e2e0ff", txt2: "#9895b5", d: "#132320", d_t: "#4ade80", d_b: "#10b981", nd: "#2a1a1a", nd_t: "#f87171", nd_b: "#ef4444" },
+  ocean: { bg: "#0b1120", bg2: "#111827", bg3: "#1f2937", bord: "#374151", acc: "#3b82f6", acc2: "#60a5fa", gold: "#fbbf24", txt: "#f1f5f9", txt2: "#94a3b8", d: "#064e3b", d_t: "#34d399", d_b: "#10b981", nd: "#451212", nd_t: "#f87171", nd_b: "#ef4444" },
+  dracula: { bg: "#282a36", bg2: "#343746", bg3: "#44475a", bord: "#6272a4", acc: "#bd93f9", acc2: "#ff79c6", gold: "#f1fa8c", txt: "#f8f8f2", txt2: "#bd93f9", d: "#2d4f3b", d_t: "#50fa7b", d_b: "#50fa7b", nd: "#4d2b2b", nd_t: "#ff5555", nd_b: "#ff5555" },
+  nord: { bg: "#2e3440", bg2: "#3b4252", bg3: "#434c5e", bord: "#4c566a", acc: "#88c0d0", acc2: "#81a1c1", gold: "#ebcb8b", txt: "#eceff4", txt2: "#d8dee9", d: "#3b4f41", d_t: "#a3be8c", d_b: "#a3be8c", nd: "#4c3a3a", nd_t: "#bf616a", nd_b: "#bf616a" },
+  midnight: { bg: "#020617", bg2: "#0f172a", bg3: "#1e293b", bord: "#334155", acc: "#38bdf8", acc2: "#7dd3fc", gold: "#facc15", txt: "#f8fafc", txt2: "#94a3b8", d: "#052e16", d_t: "#4ade80", d_b: "#22c55e", nd: "#450a0a", nd_t: "#f87171", nd_b: "#ef4444" },
+  charcoal: { bg: "#171717", bg2: "#262626", bg3: "#404040", bord: "#525252", acc: "#a855f7", acc2: "#d8b4fe", gold: "#fbbf24", txt: "#fafafa", txt2: "#a3a3a3", d: "#14532d", d_t: "#4ade80", d_b: "#22c55e", nd: "#7f1d1d", nd_t: "#f87171", nd_b: "#ef4444" },
+  slate: { bg: "#0f172a", bg2: "#1e293b", bg3: "#334155", bord: "#475569", acc: "#0ea5e9", acc2: "#38bdf8", gold: "#fbbf24", txt: "#f1f5f9", txt2: "#94a3b8", d: "#064e3b", d_t: "#4ade80", d_b: "#10b981", nd: "#451212", nd_t: "#f87171", nd_b: "#ef4444" },
+  gruvbox_d: { bg: "#1d2021", bg2: "#282828", bg3: "#3c3836", bord: "#504945", acc: "#fe8019", acc2: "#fabd2f", gold: "#b8bb26", txt: "#ebdbb2", txt2: "#a89984", d: "#32302f", d_t: "#b8bb26", d_b: "#b8bb26", nd: "#3c1e1e", nd_t: "#fb4934", nd_b: "#fb4934" },
+  one_dark: { bg: "#21252b", bg2: "#282c34", bg3: "#353b45", bord: "#4b5263", acc: "#61afef", acc2: "#c678dd", gold: "#e5c07b", txt: "#abb2bf", txt2: "#5c6370", d: "#2c313a", d_t: "#98c379", d_b: "#98c379", nd: "#3e3131", nd_t: "#e06c75", nd_b: "#e06c75" },
+  forest_d: { bg: "#022c22", bg2: "#064e3b", bg3: "#065f46", bord: "#047857", acc: "#10b981", acc2: "#34d399", gold: "#fbbf24", txt: "#ecfdf5", txt2: "#a7f3d0", d: "#065f46", d_t: "#34d399", d_b: "#10b981", nd: "#451a1a", nd_t: "#f87171", nd_b: "#ef4444" },
+
+  // --- Light Themes ---
+  snow: { bg: "#f8fafc", bg2: "#ffffff", bg3: "#f1f5f9", bord: "#cbd5e1", acc: "#2563eb", acc2: "#60a5fa", gold: "#92400e", txt: "#0f172a", txt2: "#475569", d: "#dcfce7", d_t: "#166534", d_b: "#22c55e", nd: "#fee2e2", nd_t: "#991b1b", nd_b: "#ef4444" },
+  ivory: { bg: "#fafaf9", bg2: "#ffffff", bg3: "#f5f5f4", bord: "#d6d3d1", acc: "#d97706", acc2: "#f59e0b", gold: "#854d0e", txt: "#1c1917", txt2: "#57534e", d: "#ecfccb", d_t: "#3f6212", d_b: "#84cc16", nd: "#fff1f1", nd_t: "#991b1b", nd_b: "#ef4444" },
+  paper: { bg: "#ffffff", bg2: "#f5f5f5", bg3: "#e5e5e5", bord: "#a3a3a3", acc: "#000000", acc2: "#404040", gold: "#b45309", txt: "#171717", txt2: "#525252", d: "#d1fae5", d_t: "#065f46", d_b: "#10b981", nd: "#fee2e2", nd_t: "#7f1d1d", nd_b: "#ef4444" },
+  sky: { bg: "#f0f9ff", bg2: "#ffffff", bg3: "#e0f2fe", bord: "#7dd3fc", acc: "#0284c7", acc2: "#0ea5e9", gold: "#b45309", txt: "#0c4a6e", txt2: "#0369a1", d: "#dcfce7", d_t: "#166534", d_b: "#22c55e", nd: "#fff1f1", nd_t: "#991b1b", nd_b: "#ef4444" },
+  mint: { bg: "#f0fdf4", bg2: "#ffffff", bg3: "#dcfce7", bord: "#86efac", acc: "#059669", acc2: "#10b981", gold: "#854d0e", txt: "#064e3b", txt2: "#047857", d: "#dcfce7", d_t: "#166534", d_b: "#22c55e", nd: "#fff1f1", nd_t: "#991b1b", nd_b: "#ef4444" },
+  rose: { bg: "#fff1f2", bg2: "#ffffff", bg3: "#ffe4e6", bord: "#fda4af", acc: "#e11d48", acc2: "#fb7185", gold: "#9f1239", txt: "#4c0519", txt2: "#9f1239", d: "#dcfce7", d_t: "#166534", d_b: "#22c55e", nd: "#fff1f1", nd_t: "#991b1b", nd_b: "#ef4444" },
+  lavender: { bg: "#f5f3ff", bg2: "#ffffff", bg3: "#ede9fe", bord: "#c4b5fd", acc: "#7c3aed", acc2: "#a78bfa", gold: "#6d28d9", txt: "#2e1065", txt2: "#5b21b6", d: "#dcfce7", d_t: "#166534", d_b: "#22c55e", nd: "#fff1f1", nd_t: "#991b1b", nd_b: "#ef4444" },
+  solar_l: { bg: "#fdf6e3", bg2: "#eee8d5", bg3: "#e5dfcc", bord: "#93a1a1", acc: "#268bd2", acc2: "#2aa198", gold: "#b58900", txt: "#657b83", txt2: "#586e75", d: "#dcfce7", d_t: "#859900", d_b: "#859900", nd: "#fff1f1", nd_t: "#dc322f", nd_b: "#dc322f" },
+  latte: { bg: "#eff1f5", bg2: "#e6e9ef", bg3: "#ccd0da", bord: "#bcc0cc", acc: "#1e66f5", acc2: "#7287fd", gold: "#df8e1d", txt: "#4c4f69", txt2: "#6c6f85", d: "#dce0e8", d_t: "#40a02b", d_b: "#40a02b", nd: "#e6e9ef", nd_t: "#d20f39", nd_b: "#d20f39" },
+  zinc_l: { bg: "#fafafa", bg2: "#ffffff", bg3: "#f4f4f5", bord: "#e4e4e7", acc: "#18181b", acc2: "#3f3f46", gold: "#a16207", txt: "#09090b", txt2: "#71717a", d: "#ecfccb", d_t: "#166534", d_b: "#22c55e", nd: "#fff1f1", nd_t: "#991b1b", nd_b: "#ef4444" },
+
+  // --- Special Themes ---
+  cyberpunk: { bg: "#000b1e", bg2: "#00162d", bg3: "#002a4a", bord: "#00f0ff", acc: "#f0ff00", acc2: "#00ff00", gold: "#ff00ff", txt: "#00f0ff", txt2: "#70ffff", d: "#002a4a", d_t: "#00ff00", d_b: "#00ff00", nd: "#2d0016", nd_t: "#ff0000", nd_b: "#ff0000" },
+  synthwave: { bg: "#262335", bg2: "#241b30", bg3: "#3e2f5b", bord: "#ff7edb", acc: "#ff7edb", acc2: "#36f9f6", gold: "#fede5d", txt: "#ffffff", txt2: "#b197d1", d: "#241b30", d_t: "#36f9f6", d_b: "#36f9f6", nd: "#3e2f5b", nd_t: "#ff7edb", nd_b: "#ff7edb" },
+  terminal: { bg: "#0a0a0a", bg2: "#000000", bg3: "#1a1a1a", bord: "#00ff00", acc: "#00ff00", acc2: "#00cc00", gold: "#00ff00", txt: "#00ff00", txt2: "#008800", d: "#000000", d_t: "#00ff00", d_b: "#00ff00", nd: "#000000", nd_t: "#00cc00", nd_b: "#00cc00" },
+  coffee: { bg: "#1b1411", bg2: "#2a1e1a", bg3: "#3e2c26", bord: "#5d4037", acc: "#d7ccc8", acc2: "#bcaaa4", gold: "#ffcc80", txt: "#efebe9", txt2: "#d7ccc8", d: "#3e2c26", d_t: "#a5d6a7", d_b: "#a5d6a7", nd: "#2a1e1a", nd_t: "#ef9a9a", nd_b: "#ef9a9a" },
+  royal: { bg: "#0f172a", bg2: "#1e293b", bg3: "#334155", bord: "#facc15", acc: "#facc15", acc2: "#fde047", gold: "#ffffff", txt: "#f8fafc", txt2: "#94a3b8", d: "#064e3b", d_t: "#fbbf24", d_b: "#fbbf24", nd: "#451212", nd_t: "#f87171", nd_b: "#ef4444" },
+  autumn: { bg: "#2a1205", bg2: "#451a03", bg3: "#78350f", bord: "#92400e", acc: "#f97316", acc2: "#fb923c", gold: "#facc15", txt: "#ffedd5", txt2: "#fdba74", d: "#431407", d_t: "#fde047", d_b: "#fde047", nd: "#2a1205", nd_t: "#fb923c", nd_b: "#fb923c" },
+  neon_p: { bg: "#000000", bg2: "#111111", bg3: "#222222", bord: "#ff00ff", acc: "#ff00ff", acc2: "#00ffff", gold: "#00ff00", txt: "#ffffff", txt2: "#ff00ff", d: "#000000", d_t: "#00ffff", d_b: "#00ffff", nd: "#000000", nd_t: "#ff00ff", nd_b: "#ff00ff" },
+  sakura: { bg: "#fff5f7", bg2: "#ffffff", bg3: "#ffe4e9", bord: "#ffb7c5", acc: "#ff8da1", acc2: "#ffb7c5", gold: "#c026d3", txt: "#701a28", txt2: "#db2777", d: "#f0fdf4", d_t: "#166534", d_b: "#22c55e", nd: "#fff1f2", nd_t: "#991b1b", nd_b: "#ef4444" },
+  emerald_d: { bg: "#022c22", bg2: "#064e3b", bg3: "#065f46", bord: "#10b981", acc: "#10b981", acc2: "#34d399", gold: "#facc15", txt: "#ecfdf5", txt2: "#a7f3d0", d: "#065f46", d_t: "#34d399", d_b: "#10b981", nd: "#451a1a", nd_t: "#f87171", nd_b: "#ef4444" },
+  high_contrast: { bg: "#000000", bg2: "#000000", bg3: "#000000", bord: "#ffffff", acc: "#ffffff", acc2: "#ffffff", gold: "#ffff00", txt: "#ffffff", txt2: "#ffffff", d: "#000000", d_t: "#00ff00", d_b: "#00ff00", nd: "#000000", nd_t: "#ff0000", nd_b: "#ff0000" }
 };
 
 const ui = {
@@ -366,6 +397,17 @@ const ctrl = {
     const kvs = await DB.getAll("kv");
     const isT = kvs.find(x => x.key === "isTransposed")?.val || false;
     
+    const getProg = (mid) => {
+      let n = 0, m = 0;
+      chars.forEach(ch => {
+        const p = prg.find(x => x.charId === ch.id && x.mdId === mid);
+        const s = p?.status !== undefined ? p.status : (p?.isCompleted ? 1 : 0);
+        if (s === 1) { n++; m++; }
+        else if (s === 0) { m++; }
+      });
+      return `<span class='md-progress'>${n} / ${m}</span>`;
+    };
+
     if(!chars.length) { document.getElementById("tableArea").innerHTML = "<div class='card' style='text-align:center;'>キャラを登録してください</div>"; return; }
     
     let html = `<table><thead><tr>`;
@@ -374,15 +416,20 @@ const ctrl = {
       chars.forEach(ch => html += `<th>${ch.name}</th>`);
       html += "</tr></thead><tbody>";
       mds.forEach(md => {
-        html += `<tr><td class='md-info'><span class='md-name'>${md.name}</span><span class='ct-badge ${this.getCls(md.ctType)}'>${this.getCtLabel(md.ctType)}</span></td>`;
+        html += `<tr><td class='md-info'>
+          <span class='md-name'>${md.name}</span>
+          <span class='ct-badge ${this.getCls(md.ctType)}'>${this.getCtLabel(md.ctType)}</span>
+          ${getProg(md.id)}
+        </td>`;
         chars.forEach(ch => html += this.renderCell(ch, md, prg));
         html += "</tr>";
       });
     } else {
       html += `<th style='width:120px;position:sticky;left:0;z-index:20;background:var(--bg3);'>キャラ / MD</th>`;
-      mds.forEach(md => html += `<th style="font-size:9px; width:80px; min-width:80px;">
-        <div style="margin-bottom:4px; height:24px; overflow:hidden; text-overflow:ellipsis;">${md.name}</div>
+      mds.forEach(md => html += `<th style="font-size:9px; width:80px; min-width:80px; padding:6px 2px;">
+        <div style="margin-bottom:4px; height:24px; overflow:hidden; text-overflow:ellipsis; color:var(--text); font-weight:bold;">${md.name}</div>
         <span class='ct-badge ${this.getCls(md.ctType)}' style="font-size:8px; padding:0 2px;">${this.getCtLabel(md.ctType)}</span>
+        ${getProg(md.id)}
       </th>`);
       html += "</tr></thead><tbody>";
       chars.forEach(ch => {
@@ -512,14 +559,33 @@ const ctrl = {
   async delHist(id) { await DB.del("hist", id); this.refresh(); },
 
   async setTheme(t) {
-    const v = THEMES[t]; document.getElementById("themeStyle").innerHTML = `:root {
+    const v = THEMES[t]; if(!v) return;
+    document.getElementById("themeStyle").innerHTML = `:root {
       --bg: ${v.bg}; --bg2: ${v.bg2}; --bg3: ${v.bg3}; --border: ${v.bord}; --accent: ${v.acc}; --accent2: ${v.acc2};
-      --done: ${v.done}; --done-text: #4ade80; --done-border: ${v.d_bord}; --text: ${v.txt}; --text2: ${v.txt2};
-      --notdone: ${v.nd}; --notdone-text: #f87171; --notdone-border: ${v.nd_bord}; --gold: #f59e0b;
-      --daily: #3b82f6; --threedays: #8b5cf6; --weekly: #ec4899;
+      --done: ${v.d}; --done-text: ${v.d_t};
+      --notdone: ${v.nd}; --notdone-text: ${v.nd_t};
+      --text: ${v.txt}; --text2: ${v.txt2}; --gold: ${v.gold};
+      --daily: ${t.includes('snow') || t.includes('ivory') || t.includes('_l') || t.includes('sakura') ? '#2563eb' : '#60a5fa'};
+      --threedays: ${t.includes('snow') || t.includes('ivory') || t.includes('_l') || t.includes('sakura') ? '#7c3aed' : '#a78bfa'};
+      --weekly: ${t.includes('snow') || t.includes('ivory') || t.includes('_l') || t.includes('sakura') ? '#db2777' : '#fb7185'};
     }`;
     await DB.put("kv", { key: "theme", val: t });
-    document.querySelectorAll(".btn-theme").forEach(b => b.classList.remove("active")); document.getElementById("theme-"+t).classList.add("active");
+    this.renderThemeButtons();
+  },
+  renderThemeButtons() {
+    const grid = document.getElementById("themeGrid");
+    if(!grid) return;
+    DB.getAll("kv").then(kvs => {
+      const active = kvs.find(x => x.key === "theme")?.val || "deep";
+      grid.innerHTML = Object.keys(THEMES).map(t => {
+        const v = THEMES[t];
+        return `<button class="btn-theme ${t===active?'active':''}" onclick="ctrl.setTheme('${t}')">
+          <div class="theme-swatch-bg" style="background:${v.bg}"></div>
+          <div class="theme-swatch-acc" style="background:${v.acc}"></div>
+          <span class="theme-name">${t}</span>
+        </button>`;
+      }).join("");
+    });
   },
 
   handleDragStart(e, type, id) { e.dataTransfer.setData("text/plain", JSON.stringify({type, id})); e.currentTarget.classList.add("dragging"); },
@@ -603,7 +669,7 @@ const ctrl = {
 };
 DB.init().then(async () => {
   const theme = (await DB.getAll("kv")).find(x=>x.key==="theme")?.val || "deep";
-  ctrl.setTheme(theme); ctrl.refresh();
+  ctrl.setTheme(theme); ctrl.refresh(); ctrl.renderThemeButtons();
   // 自動解除タイマー起動 (1分ごと)
   setInterval(() => ctrl.checkClearing(), 60000);
 });
