@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RO MD管理ツール ver3.3</title>
+<title>RO MD管理ツール ver3.4</title>
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -18,18 +18,19 @@
 </style>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.4; overflow-x: hidden; transition: 0.3s; }
+body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); height: 100vh; line-height: 1.4; overflow: hidden; transition: 0.3s; display: flex; flex-direction: column; }
 
-header { background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%); border-bottom: 3px solid var(--accent); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+header { background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%); border-bottom: 3px solid var(--accent); padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; z-index: 100; }
 header h1 { font-size: 18px; font-weight: 700; background: linear-gradient(90deg, var(--gold), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
-.tabs { display: flex; gap: 4px; padding: 12px 12px 0; border-bottom: 2px solid var(--border); background: var(--bg2); overflow-x: auto; scrollbar-width: none; }
+.tabs { display: flex; gap: 4px; padding: 12px 12px 0; border-bottom: 2px solid var(--border); background: var(--bg2); overflow-x: auto; scrollbar-width: none; align-items: flex-end; flex-shrink: 0; }
 .tab-btn { padding: 10px 18px; border: 1px solid var(--border); border-bottom: none; background: var(--bg3); color: var(--text2); cursor: pointer; border-radius: 8px 8px 0 0; font-size: 13px; white-space: nowrap; transition: 0.2s; }
 .tab-btn.active { background: var(--bg); color: var(--accent2); border-color: var(--accent); font-weight: bold; }
+.tabs-right { margin-left: auto; display: flex; align-items: center; padding-bottom: 6px; padding-right: 8px; }
 
-main { padding: 15px; width: 100%; transition: 0.3s; }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
+main { padding: 15px; width: 100%; flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
+.tab-panel { display: none; height: 100%; flex-direction: column; }
+.tab-panel.active { display: flex; }
 
 .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
 .card h2 { font-size: 14px; color: var(--accent2); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--accent); padding-left: 8px; }
@@ -47,17 +48,17 @@ main { padding: 15px; width: 100%; transition: 0.3s; }
 .btn-sm { padding: 4px 10px; font-size: 11px; }
 
 /* テーブル 配色強化版 */
-.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--bg2); width: 100%; }
-table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-th, td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; }
-th { background: var(--bg3); color: var(--text2); font-size: 11px; position: sticky; top: 0; z-index: 5; }
-td.md-info { text-align: left; background: var(--bg3); width: 180px; position: sticky; left: 0; z-index: 10; border-right: 1px solid var(--border); }
-.md-name { font-weight: 700; color: var(--text); display: block; font-size: 13px; margin-bottom: 2px; }
+.table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--bg2); width: 100%; flex: 1; min-height: 0; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: auto; }
+th, td { border: 1px solid var(--border); padding: 4px 6px; text-align: center; white-space: nowrap; }
+th { background: var(--bg3); color: var(--text); font-size: 10px; position: sticky; top: 0; z-index: 25; font-weight: bold; }
+td.md-info { text-align: center; background: var(--bg3); width: 1px; position: sticky; left: 0; z-index: 20; border-right: 2px solid var(--accent); }
+.md-name { font-weight: 700; color: var(--text); display: block; font-size: 12px; margin-bottom: 2px; }
 
 td.cell-done { background: var(--done); cursor: pointer; color: var(--done-text); }
 td.cell-notdone { background: var(--notdone); cursor: pointer; color: var(--notdone-text); }
-.cell-mark { font-size: 18px; font-weight: 900; display: block; }
-.cell-time { font-size: 9px; color: var(--text2); display: block; font-weight: normal; margin-top: 2px; }
+.cell-mark { font-size: 16px; font-weight: 900; display: block; line-height: 1; }
+.cell-time { font-size: 8px; color: var(--text2); display: block; font-weight: normal; margin-top: 1px; }
 
 .ct-badge { display: inline-block; padding: 1px 4px; border-radius: 4px; font-size: 9px; font-weight: bold; vertical-align: middle; background: rgba(0,0,0,0.1); border: 1px solid currentColor; }
 .ct-daily { color: var(--daily); background: rgba(59, 130, 246, 0.1); } 
@@ -100,7 +101,7 @@ td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
 
 <header>
   <h1>⚔️ RO MD管理ツール</h1>
-  <div style="font-size: 11px; color: var(--gold); font-weight:bold;">ver3.3</div>
+  <div style="font-size: 11px; color: var(--gold); font-weight:bold;">ver3.4</div>
 </header>
 
 <div class="tabs">
@@ -108,17 +109,17 @@ td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
   <button class="tab-btn" onclick="ui.tab('mvp')">👑 MVPｃ獲得</button>
   <button class="tab-btn" onclick="ui.tab('chars')">👤 キャラ設定</button>
   <button class="tab-btn" onclick="ui.tab('mds')">🗓️ MD設定</button>
-  <button class="tab-btn" onclick="ui.tab('backup')">💾 ツール</button>
+  <button class="tab-btn" onclick="ui.tab('backup')">🎨 テーマ</button>
   <button class="tab-btn" onclick="ui.tab('guide')">📖 使い方</button>
+  <div class="tabs-right">
+    <button class="btn btn-secondary btn-sm" onclick="ctrl.toggleTranspose()">🔄 縦横入れ替え</button>
+  </div>
 </div>
 
 <main>
   <!-- MD進捗 -->
   <div class="tab-panel active" id="panel-md">
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-      <button class="btn btn-secondary btn-sm" onclick="ctrl.toggleTranspose()">🔄 縦横入れ替え</button>
-    </div>
-    <div id="tableArea"></div>
+    <div id="tableArea" class="table-wrap"></div>
   </div>
 
   <!-- MVP管理 -->
@@ -168,16 +169,7 @@ td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
   <div class="tab-panel" id="panel-chars">
     <div class="card" style="border: 1px solid var(--gold);">
       <h2>🤖 JSON 一括インポート</h2>
-      <textarea id="bulkJson" style="width:100%; height:120px; font-family:monospace; font-size:11px; margin-bottom:10px;">[
-  {
-    "name": "キャラクター名",
-    "order": 0
-  },
-  {
-    "name": "キャラクター名2",
-    "order": 1
-  }
-]</textarea>
+      <textarea id="bulkJson" style="width:100%; height:120px; font-family:monospace; font-size:11px; margin-bottom:10px;" placeholder='[{"name": "キャラ名", "order": 0}]'></textarea>
       <button class="btn btn-gold" onclick="ctrl.bulkAdd()">リストを一括登録する</button>
     </div>
     <div class="card">
@@ -210,8 +202,17 @@ td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
 
   <!-- ツール -->
   <div class="tab-panel" id="panel-backup">
+    <div class="card" id="themeEditor">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h2 style="margin:0">🛠️ テーマカスタム (編集して自動保存)</h2>
+        <button class="btn btn-gold btn-sm" onclick="ctrl.saveAsOriginal()">オリジナルとして保存</button>
+      </div>
+      <div id="colorFields" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;"></div>
+    </div>
     <div class="card">
-      <h2>🎨 テーマ切替 (全30種)</h2>
+      <h2 id="savedThemesTitle" style="display:none">⭐ 保存済みオリジナルテーマ</h2>
+      <div id="savedThemeGrid" class="theme-grid" style="margin-bottom:20px"></div>
+      <h2>🎨 テーマプリセット選択 (全50種)</h2>
       <div id="themeGrid" class="theme-grid"></div>
     </div>
     <div class="card">
@@ -352,7 +353,29 @@ const THEMES = {
   neon_p: { bg: "#000000", bg2: "#111111", bg3: "#222222", bord: "#ff00ff", acc: "#ff00ff", acc2: "#00ffff", gold: "#00ff00", txt: "#ffffff", txt2: "#ff00ff", d: "#000000", d_t: "#00ffff", d_b: "#00ffff", nd: "#000000", nd_t: "#ff00ff", nd_b: "#ff00ff" },
   sakura: { bg: "#fff5f7", bg2: "#ffffff", bg3: "#ffe4e9", bord: "#ffb7c5", acc: "#ff8da1", acc2: "#ffb7c5", gold: "#c026d3", txt: "#701a28", txt2: "#db2777", d: "#f0fdf4", d_t: "#166534", d_b: "#22c55e", nd: "#fff1f2", nd_t: "#991b1b", nd_b: "#ef4444" },
   emerald_d: { bg: "#022c22", bg2: "#064e3b", bg3: "#065f46", bord: "#10b981", acc: "#10b981", acc2: "#34d399", gold: "#facc15", txt: "#ecfdf5", txt2: "#a7f3d0", d: "#065f46", d_t: "#34d399", d_b: "#10b981", nd: "#451a1a", nd_t: "#f87171", nd_b: "#ef4444" },
-  high_contrast: { bg: "#000000", bg2: "#000000", bg3: "#000000", bord: "#ffffff", acc: "#ffffff", acc2: "#ffffff", gold: "#ffff00", txt: "#ffffff", txt2: "#ffffff", d: "#000000", d_t: "#00ff00", d_b: "#00ff00", nd: "#000000", nd_t: "#ff0000", nd_b: "#ff0000" }
+  high_contrast: { bg: "#000000", bg2: "#000000", bg3: "#000000", bord: "#ffffff", acc: "#ffffff", acc2: "#ffffff", gold: "#ffff00", txt: "#ffffff", txt2: "#ffffff", d: "#000000", d_t: "#00ff00", d_b: "#00ff00", nd: "#000000", nd_t: "#ff0000", nd_b: "#ff0000" },
+
+  // --- 20 New Professional Themes ---
+  monokai: { bg: "#272822", bg2: "#1e1f1c", bg3: "#3e3d32", bord: "#75715e", acc: "#a6e22e", acc2: "#f92672", gold: "#e6db74", txt: "#f8f8f2", txt2: "#ae81ff", d: "#1e1f1c", d_t: "#a6e22e", d_b: "#a6e22e", nd: "#1e1f1c", nd_t: "#f92672", nd_b: "#f92672" },
+  night_owl: { bg: "#011627", bg2: "#0b2942", bg3: "#1d3b53", bord: "#5f7e97", acc: "#82aaff", acc2: "#ecc48d", gold: "#c792ea", txt: "#d6deeb", txt2: "#7fdbca", d: "#011627", d_t: "#7fdbca", d_b: "#7fdbca", nd: "#011627", nd_t: "#ef5350", nd_b: "#ef5350" },
+  tokyo_night: { bg: "#1a1b26", bg2: "#16161e", bg3: "#24283b", bord: "#414868", acc: "#7aa2f7", acc2: "#bb9af7", gold: "#e0af68", txt: "#cfc9c2", txt2: "#565f89", d: "#1a1b26", d_t: "#9ece6a", d_b: "#9ece6a", nd: "#1a1b26", nd_t: "#f7768e", nd_b: "#f7768e" },
+  github_d: { bg: "#0d1117", bg2: "#161b22", bg3: "#21262d", bord: "#30363d", acc: "#58a6ff", acc2: "#bc8cff", gold: "#d29922", txt: "#c9d1d9", txt2: "#8b949e", d: "#0d1117", d_t: "#3fb950", d_b: "#3fb950", nd: "#0d1117", nd_t: "#f85149", nd_b: "#f85149" },
+  github_l: { bg: "#ffffff", bg2: "#f6f8fa", bg3: "#ebeff2", bord: "#d0d7de", acc: "#0969da", acc2: "#8250df", gold: "#9a6700", txt: "#24292f", txt2: "#57606a", d: "#dafbe1", d_t: "#1a7f37", d_b: "#1a7f37", nd: "#ffebe9", nd_t: "#cf222e", nd_b: "#cf222e" },
+  vs_code_d: { bg: "#1e1e1e", bg2: "#252526", bg3: "#2d2d30", bord: "#3e3e3e", acc: "#007acc", acc2: "#4ec9b0", gold: "#dcdcaa", txt: "#cccccc", txt2: "#808080", d: "#1e1e1e", d_t: "#6a9955", d_b: "#6a9955", nd: "#1e1e1e", nd_t: "#f44747", nd_b: "#f44747" },
+  cobalt2: { bg: "#193549", bg2: "#152c3d", bg3: "#122738", bord: "#0d202e", acc: "#ffc600", acc2: "#0088ff", gold: "#ffffff", txt: "#ffffff", txt2: "#8ff2ff", d: "#193549", d_t: "#3ad900", d_b: "#3ad900", nd: "#193549", nd_t: "#ff628c", nd_b: "#ff628c" },
+  shades_purple: { bg: "#2d2b55", bg2: "#1e1e3f", bg3: "#3e3e3e", bord: "#4d4d80", acc: "#fad000", acc2: "#b362ff", gold: "#ff9d00", txt: "#ffffff", txt2: "#a599e9", d: "#2d2b55", d_t: "#3ad900", d_b: "#3ad900", nd: "#2d2b55", nd_t: "#ff628c", nd_b: "#ff628c" },
+  palenight: { bg: "#292d3e", bg2: "#1b1e2b", bg3: "#32374d", bord: "#444b6a", acc: "#c792ea", acc2: "#89ddff", gold: "#ffcb6b", txt: "#bfc7d5", txt2: "#676e95", d: "#292d3e", d_t: "#c3e88d", d_b: "#c3e88d", nd: "#292d3e", nd_t: "#f07178", nd_b: "#f07178" },
+  ayu_mirage: { bg: "#212733", bg2: "#191e2a", bg3: "#242936", bord: "#343f4c", acc: "#ffcc66", acc2: "#5ccfe6", gold: "#ffd580", txt: "#d9d7ce", txt2: "#5c6773", d: "#212733", d_t: "#bae67e", d_b: "#bae67e", nd: "#212733", nd_t: "#f07178", nd_b: "#f07178" },
+  oceanic_next: { bg: "#1b2b34", bg2: "#16242c", bg3: "#343d46", bord: "#4f5b66", acc: "#6699cc", acc2: "#5fb3b3", gold: "#fac863", txt: "#d8dee9", txt2: "#65737e", d: "#1b2b34", d_t: "#99c794", d_b: "#99c794", nd: "#1b2b34", nd_t: "#ec5f67", nd_b: "#ec5f67" },
+  discord: { bg: "#313338", bg2: "#2b2d31", bg3: "#1e1f22", bord: "#4e5058", acc: "#5865f2", acc2: "#ebedef", gold: "#ffffff", txt: "#dbdee1", txt2: "#949ba4", d: "#313338", d_t: "#23a55a", d_b: "#23a55a", nd: "#313338", nd_t: "#f23f43", nd_b: "#f23f43" },
+  slack_d: { bg: "#1a1d21", bg2: "#222529", bg3: "#121519", bord: "#35373b", acc: "#4a154b", acc2: "#36c5f0", gold: "#ecb22e", txt: "#d1d2d3", txt2: "#9ea0a4", d: "#1a1d21", d_t: "#2eb67d", d_b: "#2eb67d", nd: "#1a1d21", nd_t: "#e01e5a", nd_b: "#e01e5a" },
+  office_d: { bg: "#201f1e", bg2: "#292827", bg3: "#323130", bord: "#484644", acc: "#0078d4", acc2: "#2b88d8", gold: "#f3f2f1", txt: "#ffffff", txt2: "#a19f9d", d: "#201f1e", d_t: "#107c10", d_b: "#107c10", nd: "#201f1e", nd_t: "#a80000", nd_b: "#a80000" },
+  win11_d: { bg: "#1c1c1c", bg2: "#2c2c2c", bg3: "#3c3c3c", bord: "#4c4c4c", acc: "#0067c0", acc2: "#4cc2ff", gold: "#ffffff", txt: "#ffffff", txt2: "#a0a0a0", d: "#1c1c1c", d_t: "#107c10", d_b: "#107c10", nd: "#1c1c1c", nd_t: "#c42b1c", nd_b: "#c42b1c" },
+  sublime: { bg: "#171717", bg2: "#212121", bg3: "#333333", bord: "#444444", acc: "#f8f8f2", acc2: "#a6e22e", gold: "#e6db74", txt: "#f8f8f2", txt2: "#75715e", d: "#171717", d_t: "#a6e22e", d_b: "#a6e22e", nd: "#171717", nd_t: "#f92672", nd_b: "#f92672" },
+  berry: { bg: "#1e141a", bg2: "#2d1e27", bg3: "#3d2a35", bord: "#5d4050", acc: "#ff4d88", acc2: "#ff99bb", gold: "#ffcc00", txt: "#ffe6f2", txt2: "#cc80a3", d: "#1e141a", d_t: "#00ffa2", d_b: "#00ffa2", nd: "#1e141a", nd_t: "#ff4d88", nd_b: "#ff4d88" },
+  lucid: { bg: "#ffffff", bg2: "#f0f0f0", bg3: "#e0e0e0", bord: "#cccccc", acc: "#0000ff", acc2: "#0099ff", gold: "#996600", txt: "#000000", txt2: "#666666", d: "#e0ffe0", d_t: "#008000", d_b: "#008000", nd: "#ffe0e0", nd_t: "#cc0000", nd_b: "#cc0000" },
+  ayu_light: { bg: "#fafafa", bg2: "#ffffff", bg3: "#f3f3f3", bord: "#e0e0e0", acc: "#ffaa33", acc2: "#36a3d9", gold: "#f29718", txt: "#5c6773", txt2: "#828c99", d: "#f0fdf4", d_t: "#86b300", d_b: "#86b300", nd: "#fff1f2", nd_t: "#f07178", nd_b: "#f07178" },
+  atom_l: { bg: "#f0f0f0", bg2: "#ffffff", bg3: "#e5e5e5", bord: "#d0d0d0", acc: "#4078f2", acc2: "#a626a4", gold: "#986801", txt: "#383a42", txt2: "#696c77", d: "#e0ffe0", d_t: "#50a14f", d_b: "#50a14f", nd: "#ffe0e0", nd_t: "#e45649", nd_b: "#e45649" }
 };
 
 const ui = {
@@ -412,12 +435,12 @@ const ctrl = {
     
     let html = `<table><thead><tr>`;
     if (!isT) {
-      html += `<th style='width:180px;position:sticky;left:0;z-index:20;background:var(--bg3);'>MD一覧 / キャラ</th>`;
-      chars.forEach(ch => html += `<th>${ch.name}</th>`);
+      html += `<th style='width:1px; position:sticky; left:0; z-index:30; background:var(--bg3); border-right:2px solid var(--accent);'>MD一覧 / キャラ</th>`;
+      chars.forEach(ch => html += `<th style="min-width:60px; max-width:120px;">${ch.name}</th>`);
       html += "</tr></thead><tbody>";
       mds.forEach(md => {
         html += `<tr><td class='md-info'>
-          <span class='md-name'>${md.name}</span>
+          <span class='md-name' title="${md.name}">${md.name}</span>
           <span class='ct-badge ${this.getCls(md.ctType)}'>${this.getCtLabel(md.ctType)}</span>
           ${getProg(md.id)}
         </td>`;
@@ -425,15 +448,15 @@ const ctrl = {
         html += "</tr>";
       });
     } else {
-      html += `<th style='width:120px;position:sticky;left:0;z-index:20;background:var(--bg3);'>キャラ / MD</th>`;
-      mds.forEach(md => html += `<th style="font-size:9px; width:80px; min-width:80px; padding:6px 2px;">
-        <div style="margin-bottom:4px; height:24px; overflow:hidden; text-overflow:ellipsis; color:var(--text); font-weight:bold;">${md.name}</div>
-        <span class='ct-badge ${this.getCls(md.ctType)}' style="font-size:8px; padding:0 2px;">${this.getCtLabel(md.ctType)}</span>
+      html += `<th style='width:1px; position:sticky; left:0; z-index:30; background:var(--bg3); border-right:2px solid var(--accent);'>キャラ / MD</th>`;
+      mds.forEach(md => html += `<th style="font-size:9px; min-width:60px; max-width:100px; padding:4px 1px;">
+        <div style="margin-bottom:2px; height:22px; overflow:hidden; text-overflow:ellipsis; color:var(--text); font-weight:bold; line-height:1.1;" title="${md.name}">${md.name}</div>
+        <span class='ct-badge ${this.getCls(md.ctType)}' style="font-size:8px; padding:0 1px;">${this.getCtLabel(md.ctType)}</span>
         ${getProg(md.id)}
       </th>`);
       html += "</tr></thead><tbody>";
       chars.forEach(ch => {
-        html += `<tr><td class='md-info' style="width:120px; border-right:3px solid var(--accent);"><span class='md-name'>${ch.name}</span></td>`;
+        html += `<tr><td class='md-info'><span class='md-name' title="${ch.name}">${ch.name}</span></td>`;
         mds.forEach(md => html += this.renderCell(ch, md, prg));
         html += "</tr>";
       });
@@ -558,28 +581,95 @@ const ctrl = {
   },
   async delHist(id) { await DB.del("hist", id); this.refresh(); },
 
-  async setTheme(t) {
-    const v = THEMES[t]; if(!v) return;
+  async setTheme(t, customVal = null) {
+    const v = customVal || THEMES[t]; if(!v) return;
     document.getElementById("themeStyle").innerHTML = `:root {
       --bg: ${v.bg}; --bg2: ${v.bg2}; --bg3: ${v.bg3}; --border: ${v.bord}; --accent: ${v.acc}; --accent2: ${v.acc2};
       --done: ${v.d}; --done-text: ${v.d_t};
       --notdone: ${v.nd}; --notdone-text: ${v.nd_t};
       --text: ${v.txt}; --text2: ${v.txt2}; --gold: ${v.gold};
-      --daily: ${t.includes('snow') || t.includes('ivory') || t.includes('_l') || t.includes('sakura') ? '#2563eb' : '#60a5fa'};
-      --threedays: ${t.includes('snow') || t.includes('ivory') || t.includes('_l') || t.includes('sakura') ? '#7c3aed' : '#a78bfa'};
-      --weekly: ${t.includes('snow') || t.includes('ivory') || t.includes('_l') || t.includes('sakura') ? '#db2777' : '#fb7185'};
+      --daily: ${['snow','ivory','sakura','lucid','github_l','ayu_light','atom_l'].some(x=>t.includes(x)) ? '#2563eb' : '#60a5fa'};
+      --threedays: ${['snow','ivory','sakura','lucid','github_l','ayu_light','atom_l'].some(x=>t.includes(x)) ? '#7c3aed' : '#a78bfa'};
+      --weekly: ${['snow','ivory','sakura','lucid','github_l','ayu_light','atom_l'].some(x=>t.includes(x)) ? '#db2777' : '#fb7185'};
     }`;
-    await DB.put("kv", { key: "theme", val: t });
+    if (!customVal) await DB.put("kv", { key: "theme", val: t });
+    else await DB.put("kv", { key: "customTheme", val: customVal });
+    this.renderThemeButtons();
+    this.renderThemeEditor(v);
+  },
+  async renderThemeEditor(v) {
+    const fields = [
+      {k:'bg', n:'背景1'}, {k:'bg2', n:'背景2'}, {k:'bg3', n:'背景3'},
+      {k:'bord', n:'枠線'}, {k:'acc', n:'アクセント'}, {k:'acc2', n:'サブ色'},
+      {k:'txt', n:'文字主'}, {k:'txt2', n:'文字副'}, {k:'gold', n:'強調色'},
+      {k:'d', n:'完了背景'}, {k:'d_t', n:'完了文字'},
+      {k:'nd', n:'未完背景'}, {k:'nd_t', n:'未完文字'}
+    ];
+    document.getElementById("colorFields").innerHTML = fields.map(f => `
+      <div class="form-group">
+        <label>${f.n}</label>
+        <div style="display:flex; gap:4px;">
+          <input type="color" value="${v[f.k]}" oninput="ctrl.updateColor('${f.k}', this.value)" style="padding:0; width:30px; height:30px; border:none; cursor:pointer; background:none;">
+          <input type="text" value="${v[f.k]}" onchange="ctrl.updateColor('${f.k}', this.value)" style="width:80px; font-size:10px; padding:4px;">
+        </div>
+      </div>`).join("");
+  },
+  async updateColor(k, val) {
+    const kvs = await DB.getAll("kv");
+    const themeName = kvs.find(x => x.key === "theme")?.val || "deep";
+    let v = kvs.find(x => x.key === "customTheme")?.val || {...(THEMES[themeName] || Object.values(THEMES)[0])};
+    v[k] = val;
+    this.setTheme(themeName, v);
+  },
+  async saveAsOriginal() {
+    const kvs = await DB.getAll("kv");
+    const themeName = kvs.find(x => x.key === "theme")?.val || "deep";
+    const v = kvs.find(x => x.key === "customTheme")?.val || {...(THEMES[themeName] || Object.values(THEMES)[0])};
+    const saved = kvs.find(x => x.key === "userThemes")?.val || [];
+    const name = prompt("テーマ名を入力してください", "マイテーマ " + (saved.length + 1));
+    if (!name) return;
+    saved.push({ name, colors: v, id: Date.now() });
+    await DB.put("kv", { key: "userThemes", val: saved });
+    ui.toast("保存しました");
+    this.renderThemeButtons();
+  },
+  async delUserTheme(id) {
+    if(!confirm("削除しますか？")) return;
+    const kvs = await DB.getAll("kv");
+    const saved = (kvs.find(x => x.key === "userThemes")?.val || []).filter(x => x.id !== id);
+    await DB.put("kv", { key: "userThemes", val: saved });
     this.renderThemeButtons();
   },
   renderThemeButtons() {
     const grid = document.getElementById("themeGrid");
+    const sGrid = document.getElementById("savedThemeGrid");
     if(!grid) return;
     DB.getAll("kv").then(kvs => {
       const active = kvs.find(x => x.key === "theme")?.val || "deep";
+      const userThemes = kvs.find(x => x.key === "userThemes")?.val || [];
+      
+      // 保存済み
+      if (userThemes.length > 0) {
+        document.getElementById("savedThemesTitle").style.display = "flex";
+        sGrid.innerHTML = userThemes.map(t => `
+          <div style="position:relative">
+            <button class="btn-theme ${t.id===active?'active':''}" onclick="DB.del('kv','customTheme').then(()=>ctrl.setTheme('${t.id}', ${JSON.stringify(t.colors).replace(/"/g, '&quot;')}))">
+              <div class="theme-swatch-bg" style="background:${t.colors.bg}"></div>
+              <div class="theme-swatch-acc" style="background:${t.colors.acc}"></div>
+              <span class="theme-name">${t.name}</span>
+            </button>
+            <button onclick="ctrl.delUserTheme(${t.id})" style="position:absolute; top:-5px; right:-5px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:10px; cursor:pointer; z-index:10;">×</button>
+          </div>
+        `).join("");
+      } else {
+        document.getElementById("savedThemesTitle").style.display = "none";
+        sGrid.innerHTML = "";
+      }
+
+      // プリセット
       grid.innerHTML = Object.keys(THEMES).map(t => {
         const v = THEMES[t];
-        return `<button class="btn-theme ${t===active?'active':''}" onclick="ctrl.setTheme('${t}')">
+        return `<button class="btn-theme ${t===active?'active':''}" onclick="DB.del('kv','customTheme').then(()=>ctrl.setTheme('${t}'))">
           <div class="theme-swatch-bg" style="background:${v.bg}"></div>
           <div class="theme-swatch-acc" style="background:${v.acc}"></div>
           <span class="theme-name">${t}</span>
@@ -606,12 +696,19 @@ const ctrl = {
       <span contenteditable="true" onblur="ctrl.saveCN(${c.id}, this.innerText)">${c.name}</span><button class='btn btn-danger btn-sm' style='margin-left:auto' onclick='ctrl.delChar(${c.id})'>✗</button></div>`).join("");
     const mds = (await DB.getAll("mds")).sort((a,b) => (a.order||0) - (b.order||0));
     document.getElementById("mdList").innerHTML = mds.map(m => `<div class='sortable-item' draggable='true' data-id='${m.id}' ondragstart='ctrl.handleDragStart(event, "mds", ${m.id})' ondragend='event.currentTarget.classList.remove("dragging")'>
-      <span contenteditable="true" onblur="ctrl.saveMN(${m.id}, this.innerText)" style="font-weight:bold">${m.name}</span> (MVP:<span contenteditable="true" onblur="ctrl.saveMM(${m.id}, this.innerText)">${m.mvp}</span>)
+      <span contenteditable="true" onblur="ctrl.saveMN(${m.id}, this.innerText)" style="font-weight:bold; min-width:120px;">${m.name}</span>
+      <span style="font-size:11px; color:var(--text2); margin-left:10px;">MVP:</span><span contenteditable="true" onblur="ctrl.saveMM(${m.id}, this.innerText)" style="min-width:30px;">${m.mvp}</span>
+      <select onchange="ctrl.saveMCT(${m.id}, this.value)" style="margin-left:10px; background:var(--bg2); color:var(--text); border:1px solid var(--border); font-size:11px; border-radius:4px; padding:2px;">
+        <option value="daily" ${m.ctType==='daily'?'selected':''}>毎日 05:00</option>
+        <option value="3days" ${m.ctType==='3days'?'selected':''}>3日後 05:00</option>
+        <option value="weeklyTue12" ${m.ctType==='weeklyTue12'?'selected':''}>火曜 12:00</option>
+      </select>
       <button class='btn btn-danger btn-sm' style='margin-left:auto' onclick='ctrl.delMd(${m.id})'>✗</button></div>`).join("");
   },
   async saveCN(id, v) { const c = (await DB.getAll("chars")).find(x=>x.id===id); c.name=v; await DB.put("chars",c); this.refresh(); },
   async saveMN(id, v) { const m = (await DB.getAll("mds")).find(x=>x.id===id); m.name=v; await DB.put("mds",m); this.refresh(); },
   async saveMM(id, v) { const m = (await DB.getAll("mds")).find(x=>x.id===id); m.mvp=Number(v)||0; await DB.put("mds",m); this.refresh(); },
+  async saveMCT(id, v) { const m = (await DB.getAll("mds")).find(x=>x.id===id); m.ctType=v; await DB.put("mds",m); this.refresh(); },
   async delChar(id) { await DB.del("chars", id); this.refresh(); },
   async delMd(id) { await DB.del("mds", id); this.refresh(); },
   async addSingleChar() { if(!document.getElementById("cName_m").value) return; await DB.put("chars", { name: document.getElementById("cName_m").value, order: 999 }); document.getElementById("cName_m").value=""; this.refresh(); },
@@ -668,8 +765,10 @@ const ctrl = {
   async bulkAdd() { try { const list = JSON.parse(document.getElementById("bulkJson").value); for(const c of list) await DB.put("chars", c); document.getElementById("bulkJson").value=""; this.refresh(); ui.toast("一括登録完了"); } catch(e){ alert("解析失敗"); } }
 };
 DB.init().then(async () => {
-  const theme = (await DB.getAll("kv")).find(x=>x.key==="theme")?.val || "deep";
-  ctrl.setTheme(theme); ctrl.refresh(); ctrl.renderThemeButtons();
+  const kvs = await DB.getAll("kv");
+  const theme = kvs.find(x=>x.key==="theme")?.val || "deep";
+  const custom = kvs.find(x=>x.key==="customTheme")?.val;
+  ctrl.setTheme(theme, custom); ctrl.refresh(); ctrl.renderThemeButtons();
   // 自動解除タイマー起動 (1分ごと)
   setInterval(() => ctrl.checkClearing(), 60000);
 });
