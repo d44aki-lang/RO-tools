@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RO MD管理ツール ver3.4</title>
+<title>RO MD管理ツール ver3.5</title>
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -99,11 +99,6 @@ td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
 </head>
 <body>
 
-<header>
-  <h1>⚔️ RO MD管理ツール</h1>
-  <div style="font-size: 11px; color: var(--gold); font-weight:bold;">ver3.4</div>
-</header>
-
 <div class="tabs">
   <button class="tab-btn active" onclick="ui.tab('md')">📋 MD進捗</button>
   <button class="tab-btn" onclick="ui.tab('mvp')">👑 MVPｃ獲得</button>
@@ -112,7 +107,8 @@ td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
   <button class="tab-btn" onclick="ui.tab('backup')">🎨 テーマ</button>
   <button class="tab-btn" onclick="ui.tab('guide')">📖 使い方</button>
   <div class="tabs-right">
-    <button class="btn btn-secondary btn-sm" onclick="ctrl.toggleTranspose()">🔄 縦横入れ替え</button>
+    <button class="btn btn-secondary btn-sm" style="margin-right: 12px;" onclick="ctrl.toggleTranspose()">🔄 縦横入れ替え</button>
+    <div style="font-size: 11px; color: var(--gold); font-weight:bold; white-space:nowrap;">ver3.5</div>
   </div>
 </div>
 
@@ -167,16 +163,25 @@ td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
 
   <!-- キャラ設定 -->
   <div class="tab-panel" id="panel-chars">
+    <div class="card">
+      <h2>⚙️ MD進捗画面の表示設定</h2>
+      <div class="form-row">
+        <label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" id="cfgShowLv" onchange="ctrl.toggleDisp('showLv', this.checked)"> BaseLvを表示する</label>
+        <label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" id="cfgShowJob" onchange="ctrl.toggleDisp('showJob', this.checked)"> 職業名を表示する</label>
+      </div>
+    </div>
     <div class="card" style="border: 1px solid var(--gold);">
       <h2>🤖 JSON 一括インポート</h2>
-      <textarea id="bulkJson" style="width:100%; height:120px; font-family:monospace; font-size:11px; margin-bottom:10px;" placeholder='[{"name": "キャラ名", "order": 0}]'></textarea>
+      <textarea id="bulkJson" style="width:100%; height:120px; font-family:monospace; font-size:11px; margin-bottom:10px;" placeholder='[{"name": "キャラ名", "lv": 250, "job": "職業名", "order": 0}]'></textarea>
       <button class="btn btn-gold" onclick="ctrl.bulkAdd()">リストを一括登録する</button>
     </div>
     <div class="card">
       <h2>👤 ドラッグ並び替え / キャラ手動追加</h2>
       <div id="charList" ondragover="ui.allowDrop(event)" ondrop="ctrl.handleDrop(event, 'chars')"></div>
-      <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px; display:flex; gap:10px;">
-        <input id="cName_m" placeholder="新キャラ名" style="background:var(--bg3); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:6px; flex:1;">
+      <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+        <input id="cName_m" placeholder="新キャラ名" style="background:var(--bg3); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:6px; flex:2;">
+        <input id="cLv_m" placeholder="Lv" style="background:var(--bg3); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:6px; width:70px;">
+        <input id="cJob_m" placeholder="職業名" style="background:var(--bg3); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:6px; flex:1;">
         <button class="btn btn-primary" onclick="ctrl.addSingleChar()">追加</button>
       </div>
     </div>
@@ -237,12 +242,12 @@ td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
         <p style="font-size: 12px; color: var(--text2); margin-bottom: 5px;">以下のプロンプトを添えて、スクリーンショットをAIに投稿してください：</p>
         <div style="position: relative;">
           <button class="btn btn-secondary btn-sm" style="position: absolute; right: 8px; top: 8px; padding: 4px 8px; font-size: 10px;" onclick="ctrl.copyPrompt()">コピー</button>
-          <pre id="geminiPrompt" style="background: #000; color: #4ade80; padding: 10px; border-radius: 4px; font-size: 11px; overflow-x: auto; white-space: pre-wrap;">この画像に写っているキャラクター名をすべて抽出し、以下のJSON形式で出力してください。
+          <pre id="geminiPrompt" style="background: #000; color: #4ade80; padding: 10px; border-radius: 4px; font-size: 11px; overflow-x: auto; white-space: pre-wrap;">この画像に写っているキャラクター名、BaseLv、職業をすべて抽出し、以下のJSON形式で出力してください。
 余計な解説は不要です。コードブロックのみ出力してください。
 
 [
-  { "name": "キャラ名1", "order": 0 },
-  { "name": "キャラ名2", "order": 1 }
+  { "name": "キャラ名1", "lv": 250, "job": "職業名", "order": 0 },
+  { "name": "キャラ名2", "lv": 240, "job": "職業名", "order": 1 }
 ]</pre>
         </div>
         <h3 style="font-size: 13px; color: var(--gold); margin-top: 15px; margin-bottom: 8px;">3. ツールに貼り付け</h3>
@@ -261,6 +266,8 @@ td.cell-na .cell-mark { color: var(--border); opacity: 0.5; }
         <ul style="font-size: 12px; color: var(--text2); padding-left: 20px; line-height: 1.6;">
           <li><b>MD名 / MVP数:</b> MD完了時に加算される討伐数を設定できます。</li>
           <li><b>CT (クールタイム):</b> 毎日05:00、3日後05:00、火曜12:00のいずれかを選択すると、チェックが自動的に外れるようになります。</li>
+          <li><b>BaseLv / 職業名:</b> キャラ設定タブで入力・編集が可能です。</li>
+          <li><b>表示設定:</b> キャラ設定タブで進捗画面へのLv・職の表示有無を切り替えられます。</li>
           <li><b>並び替え:</b> ドラッグ＆ドロップで表示順を自由に変更できます。</li>
           <li><b>公式MDリスト適用:</b> 主要なMDセットをワンクリックで登録できます。</li>
         </ul>
@@ -419,6 +426,8 @@ const ctrl = {
     const prg = await DB.getAll("progs");
     const kvs = await DB.getAll("kv");
     const isT = kvs.find(x => x.key === "isTransposed")?.val || false;
+    const showLv = kvs.find(x => x.key === "showLv")?.val !== false;
+    const showJob = kvs.find(x => x.key === "showJob")?.val !== false;
     
     const getProg = (mid) => {
       let n = 0, m = 0;
@@ -432,11 +441,19 @@ const ctrl = {
     };
 
     if(!chars.length) { document.getElementById("tableArea").innerHTML = "<div class='card' style='text-align:center;'>キャラを登録してください</div>"; return; }
+
+    const getCharInfo = (ch) => {
+      let info = `<div style="line-height:1.2;"><div>${ch.name}</div>`;
+      if(showLv && ch.lv) info += `<div style="font-size:9px; font-weight:normal; color:var(--text2); margin-top:1px;">Lv.${ch.lv}</div>`;
+      if(showJob && ch.job) info += `<div style="font-size:9px; font-weight:normal; color:var(--text2);">${ch.job}</div>`;
+      info += `</div>`;
+      return info;
+    };
     
     let html = `<table><thead><tr>`;
     if (!isT) {
       html += `<th style='width:1px; position:sticky; left:0; z-index:30; background:var(--bg3); border-right:2px solid var(--accent);'>MD一覧 / キャラ</th>`;
-      chars.forEach(ch => html += `<th style="min-width:60px; max-width:120px;">${ch.name}</th>`);
+      chars.forEach(ch => html += `<th style="min-width:60px; max-width:120px;">${getCharInfo(ch)}</th>`);
       html += "</tr></thead><tbody>";
       mds.forEach(md => {
         html += `<tr><td class='md-info'>
@@ -456,7 +473,11 @@ const ctrl = {
       </th>`);
       html += "</tr></thead><tbody>";
       chars.forEach(ch => {
-        html += `<tr><td class='md-info'><span class='md-name' title="${ch.name}">${ch.name}</span></td>`;
+        html += `<tr><td class='md-info'>
+          <span class='md-name' title="${ch.name}">${ch.name}</span>
+          ${showLv && ch.lv ? `<div style="font-size:9px; color:var(--text2);">Lv.${ch.lv}</div>` : ''}
+          ${showJob && ch.job ? `<div style="font-size:9px; color:var(--text2);">${ch.job}</div>` : ''}
+        </td>`;
         mds.forEach(md => html += this.renderCell(ch, md, prg));
         html += "</tr>";
       });
@@ -691,27 +712,42 @@ const ctrl = {
   },
 
   async renderLists() {
+    const kvs = await DB.getAll("kv");
+    document.getElementById("cfgShowLv").checked = kvs.find(x => x.key === "showLv")?.val !== false;
+    document.getElementById("cfgShowJob").checked = kvs.find(x => x.key === "showJob")?.val !== false;
+
     const chars = (await DB.getAll("chars")).sort((a,b) => (a.order||0) - (b.order||0));
-    document.getElementById("charList").innerHTML = chars.map(c => `<div class='sortable-item' draggable='true' data-id='${c.id}' ondragstart='ctrl.handleDragStart(event, "chars", ${c.id})' ondragend='event.currentTarget.classList.remove("dragging")'>
-      <span contenteditable="true" onblur="ctrl.saveCN(${c.id}, this.innerText)">${c.name}</span><button class='btn btn-danger btn-sm' style='margin-left:auto' onclick='ctrl.delChar(${c.id})'>✗</button></div>`).join("");
+    document.getElementById("charList").innerHTML = chars.map(c => `
+      <div class='sortable-item' draggable='true' data-id='${c.id}' ondragstart='ctrl.handleDragStart(event, "chars", ${c.id})' ondragend='event.currentTarget.classList.remove("dragging")'>
+        <span contenteditable="true" onblur="ctrl.saveCN(${c.id}, 'name', this.innerText)" style="font-weight:bold; color:var(--text); flex:1; min-width:120px; overflow:hidden; text-overflow:ellipsis;">${c.name}</span>
+        <div style="width:70px; font-size:11px; color:var(--text2); white-space:nowrap;">Lv: <span contenteditable="true" onblur="ctrl.saveCN(${c.id}, 'lv', this.innerText)" style="min-width:20px; display:inline-block;">${c.lv||''}</span></div>
+        <div style="width:160px; font-size:11px; color:var(--text2); white-space:nowrap;">職: <span contenteditable="true" onblur="ctrl.saveCN(${c.id}, 'job', this.innerText)" style="min-width:60px; display:inline-block;">${c.job||''}</span></div>
+        <button class='btn btn-danger btn-sm' style='margin-left:auto' onclick='ctrl.delChar(${c.id})'>✗</button>
+      </div>`).join("");
+
     const mds = (await DB.getAll("mds")).sort((a,b) => (a.order||0) - (b.order||0));
     document.getElementById("mdList").innerHTML = mds.map(m => `<div class='sortable-item' draggable='true' data-id='${m.id}' ondragstart='ctrl.handleDragStart(event, "mds", ${m.id})' ondragend='event.currentTarget.classList.remove("dragging")'>
-      <span contenteditable="true" onblur="ctrl.saveMN(${m.id}, this.innerText)" style="font-weight:bold; min-width:120px;">${m.name}</span>
-      <span style="font-size:11px; color:var(--text2); margin-left:10px;">MVP:</span><span contenteditable="true" onblur="ctrl.saveMM(${m.id}, this.innerText)" style="min-width:30px;">${m.mvp}</span>
-      <select onchange="ctrl.saveMCT(${m.id}, this.value)" style="margin-left:10px; background:var(--bg2); color:var(--text); border:1px solid var(--border); font-size:11px; border-radius:4px; padding:2px;">
-        <option value="daily" ${m.ctType==='daily'?'selected':''}>毎日 05:00</option>
-        <option value="3days" ${m.ctType==='3days'?'selected':''}>3日後 05:00</option>
-        <option value="weeklyTue12" ${m.ctType==='weeklyTue12'?'selected':''}>火曜 12:00</option>
-      </select>
+      <span contenteditable="true" onblur="ctrl.saveMN(${m.id}, this.innerText)" style="font-weight:bold; flex:1; min-width:120px; overflow:hidden; text-overflow:ellipsis;">${m.name}</span>
+      <div style="width:120px;">
+        <select onchange="ctrl.saveMCT(${m.id}, this.value)" style="width:100%; background:var(--bg2); color:var(--text); border:1px solid var(--border); font-size:11px; border-radius:4px; padding:2px;">
+          <option value="daily" ${m.ctType==='daily'?'selected':''}>毎日 05:00</option>
+          <option value="3days" ${m.ctType==='3days'?'selected':''}>3日後 05:00</option>
+          <option value="weeklyTue12" ${m.ctType==='weeklyTue12'?'selected':''}>火曜 12:00</option>
+        </select>
+      </div>
+      <div style="width:80px; font-size:11px; color:var(--text2); white-space:nowrap;">
+        MVP: <span contenteditable="true" onblur="ctrl.saveMM(${m.id}, this.innerText)" style="min-width:20px; display:inline-block;">${m.mvp}</span>
+      </div>
       <button class='btn btn-danger btn-sm' style='margin-left:auto' onclick='ctrl.delMd(${m.id})'>✗</button></div>`).join("");
   },
-  async saveCN(id, v) { const c = (await DB.getAll("chars")).find(x=>x.id===id); c.name=v; await DB.put("chars",c); this.refresh(); },
+  async saveCN(id, field, v) { const c = (await DB.getAll("chars")).find(x=>x.id===id); if(!c) return; c[field]=v.trim(); await DB.put("chars",c); this.refresh(); },
+  async toggleDisp(key, val) { await DB.put("kv", { key, val }); this.refresh(); },
   async saveMN(id, v) { const m = (await DB.getAll("mds")).find(x=>x.id===id); m.name=v; await DB.put("mds",m); this.refresh(); },
   async saveMM(id, v) { const m = (await DB.getAll("mds")).find(x=>x.id===id); m.mvp=Number(v)||0; await DB.put("mds",m); this.refresh(); },
   async saveMCT(id, v) { const m = (await DB.getAll("mds")).find(x=>x.id===id); m.ctType=v; await DB.put("mds",m); this.refresh(); },
   async delChar(id) { await DB.del("chars", id); this.refresh(); },
   async delMd(id) { await DB.del("mds", id); this.refresh(); },
-  async addSingleChar() { if(!document.getElementById("cName_m").value) return; await DB.put("chars", { name: document.getElementById("cName_m").value, order: 999 }); document.getElementById("cName_m").value=""; this.refresh(); },
+  async addSingleChar() { const name = document.getElementById("cName_m").value; if(!name) return; const lv = document.getElementById("cLv_m").value; const job = document.getElementById("cJob_m").value; await DB.put("chars", { name, lv, job, order: 999 }); document.getElementById("cName_m").value=""; document.getElementById("cLv_m").value=""; document.getElementById("cJob_m").value=""; this.refresh(); },
   async saveMD() { if(!document.getElementById("mdName").value) return; await DB.put("mds", { name: document.getElementById("mdName").value, ctType: document.getElementById("mdCt").value, mvp: Number(document.getElementById("mdMvp").value) || 0, order: 999 }); document.getElementById("mdName").value = ""; this.refresh(); },
   async loadDefaultMDs() {
     const list = [{id:12,name:"呪いの剣士",ctType:"daily",mvp:1},{id:13,name:"時間に忘れられた飼育場",ctType:"daily",mvp:1},{name:"呪われた次元（3rd）",ctType:"daily",mvp:3,id:14},{name:"タナトスの記憶",ctType:"daily",mvp:1,id:15},{name:"欺瞞の別荘",ctType:"weeklyTue12",mvp:4,id:16},{name:"シミュレーション戦闘",ctType:"weeklyTue12",mvp:2,id:17},{name:"封じられた不死者",ctType:"weeklyTue12",mvp:2,id:18},{name:"変えられない最後",ctType:"weeklyTue12",mvp:2,id:19},{name:"悔恨の墓",ctType:"weeklyTue12",mvp:4,id:20},{name:"星座の塔",ctType:"weeklyTue12",mvp:17,id:21},{name:"生体工学研究所の記録",ctType:"weeklyTue12",mvp:2,id:22},{name:"生命の殿堂",ctType:"weeklyTue12",mvp:1,id:23},{name:"特異点 生体工学研究所",ctType:"weeklyTue12",mvp:1,id:24},{name:"特異点 名もなき島",ctType:"weeklyTue12",mvp:2,id:25},{id:26,name:"呪われた次元（4th）",ctType:"weeklyTue12",mvp:3},{name:"ファロス燈台地下迷宮",ctType:"weeklyTue12",mvp:10,id:27},{name:"夢幻の迷宮",ctType:"weeklyTue12",mvp:22,id:28}];
