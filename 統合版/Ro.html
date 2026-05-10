@@ -2912,9 +2912,15 @@
       },
 
       async handlePasteChar(e) {
-        e.preventDefault();
         const text = (e.clipboardData || window.clipboardData).getData('text');
         if (!text) return;
+
+        // 単一セルの編集（タブや改行を含まない貼り付け）はブラウザの標準動作を許可する
+        if (e.target.isContentEditable && !text.includes('\t') && !text.trim().includes('\n')) {
+          return;
+        }
+
+        e.preventDefault();
         const rows = text.trim().split(/\r?\n/);
         for (const row of rows) {
           const cols = row.split('\t');
