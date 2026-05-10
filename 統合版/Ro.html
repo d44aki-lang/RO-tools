@@ -1592,7 +1592,7 @@
           : chars.filter(c => c.server === this.currentServer);
 
         filteredChars.sort((a, b) => (a.order || 0) - (b.order || 0));
-        mds.sort((a, b) => (a.order || 99) - (b.order || 99));
+        mds.sort((a, b) => (a.order || 0) - (b.order || 0));
 
         let html = "<table>";
         if (!this.isTranspose) {
@@ -2565,6 +2565,13 @@
           }
           const keys = Array.isArray(def.items) ? def.items : Object.keys(def.items || {});
           keys.forEach(it => itemSet.add(it));
+        }
+
+        const allMds = await DB.getAll("mds");
+        allMds.sort((a, b) => (a.order || 0) - (b.order || 0));
+        for (let i = 0; i < allMds.length; i++) {
+          allMds[i].order = i;
+          await DB.put("mds", allMds[i]);
         }
 
         await DB.put("kv", { key: "md_item_order", val: Array.from(itemSet) });
