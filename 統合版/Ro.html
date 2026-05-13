@@ -659,6 +659,15 @@
             </div>
           </div>
         </div>
+        <!-- Weekly Summary Comparison -->
+        <div class="card">
+          <div class="card-head">
+            <h2>⚔️ 週間活動サマリー </h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div id="weeklySummaryArea"></div>
+          </div>
+        </div>
         <div class="chart-grid">
           <div class="card">
             <div class="card-head">
@@ -673,6 +682,7 @@
               <h2 style="margin:0;">💰 資産推移</h2>
               <div style="display:flex; gap:5px; margin-right:10px;">
                 <button class="btn btn-sm" onclick="ctrl.setAssetView('daily')">日次</button>
+                <button class="btn btn-sm" onclick="ctrl.setAssetView('weekly')">週次</button>
                 <button class="btn btn-sm" onclick="ctrl.setAssetView('monthly')">月次</button>
               </div>
               <button class="min-btn" onclick="ui.toggleMin(this)">–</button>
@@ -1478,9 +1488,9 @@
         else if (state) s.classList.add("open");
         else s.classList.remove("open");
       },
-      openDropPanel(md, char) {
+      openDropPanel(md, char, logId) {
         const p = document.getElementById("dropInputPanel");
-        p.dataset.md = md; p.dataset.char = char;
+        p.dataset.md = md; p.dataset.char = char; p.dataset.logId = logId || "";
         document.getElementById("dropTitle").textContent = `${char} - ${md}`;
         ctrl.renderDropFields(md);
         p.classList.add("open");
@@ -1498,6 +1508,79 @@
       currentServer: "All",
       selectedTradeYear: new Date().getFullYear(),
       showZeroStock: false,
+
+      getTue12(date) {
+        const d = new Date(date);
+        const day = d.getDay(); // 0:日, 2:火
+        const hours = d.getHours();
+        let diff = day - 2;
+        if (diff < 0 || (diff === 0 && hours < 12)) diff += 7;
+        const reset = new Date(d);
+        reset.setDate(d.getDate() - diff);
+        reset.setHours(12, 0, 0, 0);
+        return reset.getTime();
+      },
+
+      async renderWeeklyComparison(mds, config) {
+        const trades = await DB.getAll("trade_logs");
+        const drops = await DB.getAll("drop_logs");
+        const area = document.getElementById("weeklySummaryArea");
+        if (!area) return;
+
+        const now = Date.now();
+        const thisWeekStart = this.getTue12(now);
+        const lastWeekStart = thisWeekStart - (7 * 24 * 60 * 60 * 1000);
+        const twoWeeksAgoStart = lastWeekStart - (7 * 24 * 60 * 60 * 1000);
+
+        const filterData = (start, end) => {
+          const t = trades.filter(x => x.date >= start && x.date < end && x.type === 'sell');
+          const d = drops.filter(x => x.date >= start && x.date < end);
+          const revenue = t.reduce((sum, x) => sum + (x.total || 0), 0);
+          const runs = d.length;
+          const mvpKills = d.reduce((sum, x) => {
+            const md = mds.find(m => m.name === x.mdName);
+            return sum + (md ? (md.mvp || 0) : 0);
+          }, 0);
+          return { revenue, runs, mvpKills };
+        };
+
+        const thisWeek = filterData(thisWeekStart, now + 1000);
+        const lastWeek = filterData(lastWeekStart, thisWeekStart);
+        const twoWeeksAgo = filterData(twoWeeksAgoStart, lastWeekStart);
+
+        area.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>項目</th>
+                <th>今週</th>
+                <th>先週</th>
+                <th>先々週</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>金策収益</td>
+              <td>${utils.formatZeny(thisWeek.revenue, config.usePrefix)} z</td>
+              <td>${utils.formatZeny(lastWeek.revenue, config.usePrefix)} z</td>
+              <td>${utils.formatZeny(twoWeeksAgo.revenue, config.usePrefix)} z</td>
+              </tr>
+              <tr>
+                <td>MD周回数</td>
+                <td>${thisWeek.runs} 回</td>
+                <td>${lastWeek.runs} 回</td>
+                <td>${twoWeeksAgo.runs} 回</td>
+              </tr>
+              <tr>
+                <td>MVP討伐数</td>
+                <td>${thisWeek.mvpKills} 体</td>
+                <td>${lastWeek.mvpKills} 体</td>
+                <td>${twoWeeksAgo.mvpKills} 体</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+      },
 
       async init() {
         await DB.init();
@@ -1555,6 +1638,7 @@
         this.renderTable(mds, chars, progress, config);
 
         if (config.moneyMode) {
+          this.renderWeeklyComparison(mds, config);
           this.renderDashboard(globalBaseDate, config);
           this.renderTradeUI(config);
         }
@@ -1606,7 +1690,7 @@
           });
           html += "</tr></thead><tbody>";
           mds.forEach(m => {
-            const doneCount = progress.filter(p => p.mdId === m.id && p.status === 'done' && filteredChars.some(c => c.id === p.charId)).length;
+            const doneCount = progress.filter(p => p.mdId === m.id && p.status === 'done' && !this.isReset(m.ctType, p.date) && filteredChars.some(c => c.id === p.charId)).length;
             const totalCount = filteredChars.filter(c => {
               const p = progress.find(x => x.mdId === m.id && x.charId === c.id);
               return !p || p.status !== 'na';
@@ -1629,7 +1713,7 @@
         } else {
           html += `<thead><tr><th class="sticky-col">キャラ \\ MD名</th>`;
           mds.forEach(m => {
-            const doneCount = progress.filter(p => p.mdId === m.id && p.status === 'done' && filteredChars.some(c => c.id === p.charId)).length;
+            const doneCount = progress.filter(p => p.mdId === m.id && p.status === 'done' && !this.isReset(m.ctType, p.date) && filteredChars.some(c => c.id === p.charId)).length;
             const totalCount = filteredChars.filter(c => {
               const p = progress.find(x => x.mdId === m.id && x.charId === c.id);
               return !p || p.status !== 'na';
@@ -1716,17 +1800,31 @@
 
         if (p.status === 'done') {
           ui.closeDropPanel();
+          // 手動での取り消し（ミスチェック）の場合のみ減算
           if (!this.isReset(md.ctType, p.date)) {
             if (md && md.mvp > 0) await this.addKills(-md.mvp);
-            await this.addMdRun(md.name, -1);
+
+            // 直近の実行ログを特定して削除
+            const logs = await DB.getAll("drop_logs");
+            const target = logs.filter(l => l.mdName === md.name && l.charName === char.name).sort((a, b) => b.date - a.date)[0];
+            if (target) {
+              await DB.del("drop_logs", target.id);
+              // 紐付く自動売却取引も削除
+              const trades = await DB.getAll("trade_logs");
+              const toDel = trades.filter(t => t.auto && t.mdName === md.name && t.date === target.date);
+              for (const t of toDel) await DB.del("trade_logs", t.id);
+            }
           }
           p.status = 'none'; p.date = null;
         } else {
           p.status = 'done'; p.date = Date.now();
           if (md && md.mvp > 0) await this.addKills(md.mvp);
-          await this.addMdRun(md.name, 1);
+
+          // 実行ログ（プレースホルダー）を即時作成
+          const logId = await DB.put("drop_logs", { mdName: md.name, charName: char.name, items: {}, date: p.date, isPlaceholder: true });
+
           const hasItems = md && md.items && (Array.isArray(md.items) ? md.items.length > 0 : Object.keys(md.items).length > 0);
-          if (config.moneyMode && hasItems) ui.openDropPanel(md.name, char.name);
+          if (config.moneyMode && hasItems) ui.openDropPanel(md.name, char.name, logId);
         }
         await DB.put("progress", p);
         this.refresh();
@@ -1742,13 +1840,6 @@
         p.date = null;
         await DB.put("progress", p);
         this.refresh();
-      },
-
-      async addMdRun(mdName, val) {
-        const stats = await DB.getKV("md_stats_adj") || {};
-        if (!stats[mdName]) stats[mdName] = { count: 0, revenue: 0 };
-        stats[mdName].count += val;
-        await DB.put("kv", { key: "md_stats_adj", val: stats });
       },
 
       toggleTranspose() { this.isTranspose = !this.isTranspose; this.refresh(); },
@@ -2019,14 +2110,15 @@
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
         if (this.chartProfit) this.chartProfit.destroy();
-        const last4Weeks = [];
+        const intervals = [];
+        const base = this.getTue12(Date.now());
         for (let i = 3; i >= 0; i--) {
-          const d = new Date(); d.setDate(d.getDate() - d.getDay() - (i * 7));
-          d.setHours(0, 0, 0, 0); last4Weeks.push(d);
+          const start = base - (i * 7 * 24 * 60 * 60 * 1000);
+          const end = start + (7 * 24 * 60 * 60 * 1000);
+          intervals.push({ start, end });
         }
-        const data = last4Weeks.map(start => {
-          const end = new Date(start); end.setDate(end.getDate() + 7);
-          return trades.filter(t => t.type === 'sell' && t.date >= start.getTime() && t.date < end.getTime())
+        const data = intervals.map(inv => {
+          return trades.filter(t => t.type === 'sell' && t.date >= inv.start && t.date < inv.end)
             .reduce((sum, t) => sum + (t.total || 0), 0);
         });
         const usePrefix = !!document.getElementById("cfgUsePrefix")?.checked;
@@ -2051,19 +2143,44 @@
         if (this.chartAsset) this.chartAsset.destroy();
         const groups = {};
         trades.forEach(t => {
-          const d = new Date(t.date);
-          const key = this.assetView === 'daily' ? d.toLocaleDateString() : `${d.getFullYear()}/${d.getMonth() + 1}`;
+          let key;
+          if (this.assetView === 'daily') {
+            const d = new Date(t.date); d.setHours(0, 0, 0, 0);
+            key = d.getTime();
+          } else if (this.assetView === 'weekly') {
+            key = this.getTue12(t.date);
+          } else {
+            const d = new Date(t.date); d.setDate(1); d.setHours(0, 0, 0, 0);
+            key = d.getTime();
+          }
           groups[key] = (groups[key] || 0) + (t.type === 'sell' ? t.total : -t.total);
         });
-        const labels = Object.keys(groups).sort();
+        const sortedKeys = Object.keys(groups).sort((a, b) => Number(a) - Number(b));
+        const labels = sortedKeys.map(k => {
+          const d = new Date(Number(k));
+          if (this.assetView === 'daily') return d.toLocaleDateString();
+          if (this.assetView === 'weekly') return d.toLocaleDateString() + "週";
+          return `${d.getFullYear()}/${d.getMonth() + 1}`;
+        });
         let sum = 0;
-        const temp = labels.map(l => { sum += groups[l]; return sum; });
+        const temp = sortedKeys.map(k => { sum += groups[k]; return sum; });
         const diff = totalAssetsVal - sum;
         const data = temp.map(v => v + diff);
         const usePrefix = !!document.getElementById("cfgUsePrefix")?.checked;
+        const themeAcc = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
         this.chartAsset = new Chart(ctx, {
           type: 'line',
-          data: { labels, datasets: [{ label: '資産推移', data, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--primary-text').trim(), fill: false }] },
+          data: {
+            labels,
+            datasets: [{
+              label: '資産推移', data,
+              borderColor: themeAcc,
+              borderWidth: 3,
+              pointRadius: 4,
+              pointBackgroundColor: themeAcc,
+              fill: false, tension: 0.1
+            }]
+          },
           options: {
             responsive: true, maintainAspectRatio: false,
             scales: { y: { ticks: { callback: function (value) { return utils.formatZeny(value, usePrefix, 4); } } } },
@@ -2139,12 +2256,14 @@
       async calcMdEfficiency(drops, trades) {
         const stats = {};
         const adjs = await DB.getKV("md_stats_adj") || {};
-        const deleted = await DB.getKV("md_stats_deleted") || [];
+        const resets = await DB.getKV("md_resets") || {};
 
         // 1. 周回回数はドロップログから
         if (Array.isArray(drops)) {
           drops.forEach(d => {
-            if (deleted.includes(d.mdName)) return;
+            const resetTime = resets[d.mdName] || 0;
+            if (d.date <= resetTime) return;
+
             if (!stats[d.mdName]) stats[d.mdName] = { count: 0, total: 0 };
             stats[d.mdName].count++;
           });
@@ -2153,7 +2272,10 @@
         // 2. 収益は取引ログの実績から（紐付けがあるもののみ）
         if (Array.isArray(trades)) {
           trades.forEach(t => {
-            if (t.type === 'sell' && t.mdName && !deleted.includes(t.mdName)) {
+            const resetTime = resets[t.mdName] || 0;
+            if (t.date <= resetTime) return;
+
+            if (t.type === 'sell' && t.mdName) {
               if (!stats[t.mdName]) stats[t.mdName] = { count: 0, total: 0 };
               stats[t.mdName].total += (Number(t.total) || 0);
             }
@@ -2162,15 +2284,11 @@
 
         // 3. 調整・上書き値
         Object.entries(adjs).forEach(([name, adj]) => {
-          if (deleted.includes(name)) return;
           if (!stats[name]) stats[name] = { count: 0, total: 0 };
-          if (adj.override) {
-            stats[name].count = adj.count;
-            stats[name].total = adj.revenue;
-          } else {
-            stats[name].count += (adj.count || 0);
-            stats[name].total += (adj.revenue || 0);
-          }
+
+          // 収益は履歴から計算するため、調整値は「実施回数」のみを反映
+          // ※ revenueの加算処理を削除し、不一致の元を断つ
+          stats[name].count += (Number(adj.count) || 0);
         });
 
         Object.keys(stats).forEach(k => { stats[k].avg = stats[k].count ? stats[k].total / stats[k].count : 0; });
@@ -2185,7 +2303,7 @@
       <tr>
         <td style="text-align:left">${name}</td>
         <td contenteditable="true" onblur="ctrl.editMdStats('${name}', 'count', this.textContent)">${s.count}</td>
-        <td contenteditable="true" onblur="ctrl.editMdStats('${name}', 'revenue', this.textContent)">${utils.formatZeny(s.total, false)}</td>
+        <td style="color:var(--accent1)">${utils.formatZeny(s.total, usePrefix)}</td>
         <td style="color:var(--text)">${utils.formatZeny(s.avg, usePrefix)} z</td>
         <td><button class="btn btn-danger btn-sm" onclick="ctrl.deleteMdStat('${name}')">削</button></td>
       </tr>
@@ -2193,20 +2311,39 @@
       },
 
       async editMdStats(name, key, val) {
-        const num = utils.parseZeny(val);
+        if (key === 'revenue') return;
+        const num = Number(val.replace(/,/g, ''));
+        if (isNaN(num)) return;
+
+        const resets = await DB.getKV("md_resets") || {};
+        const resetTime = resets[name] || 0;
+
+        // 現在の履歴上の個数（リセット以降）を取得
+        const drops = await DB.getAll("drop_logs");
+        const historyCount = drops.filter(d => d.mdName === name && d.date > resetTime).length;
+
         const adjs = await DB.getKV("md_stats_adj") || {};
-        if (!adjs[name]) adjs[name] = { count: 0, revenue: 0, override: true };
-        adjs[name].override = true;
-        adjs[name][key === 'count' ? 'count' : 'revenue'] = num;
+        if (!adjs[name]) adjs[name] = { count: 0 };
+
+        // 調整値 = 目標値 - 履歴上の数
+        adjs[name].count = num - historyCount;
         await DB.put("kv", { key: "md_stats_adj", val: adjs });
         this.refresh();
       },
 
       async deleteMdStat(name) {
-        if (!confirm(`MD「${name}」の統計をリセットし非表示にしますか？`)) return;
-        const deleted = await DB.getKV("md_stats_deleted") || [];
-        if (!deleted.includes(name)) deleted.push(name);
-        await DB.put("kv", { key: "md_stats_deleted", val: deleted });
+        if (!confirm(`MD「${name}」の統計をリセットしますか？\n（これまでの記録は集計から除外され、新しく記録されるまで非表示になります）`)) return;
+
+        // リセット日時を記録（これ以前のログを無視する）
+        const resets = await DB.getKV("md_resets") || {};
+        resets[name] = Date.now();
+        await DB.put("kv", { key: "md_resets", val: resets });
+
+        // 手動補正値もリセット
+        const adjs = await DB.getKV("md_stats_adj") || {};
+        if (adjs[name]) delete adjs[name];
+        await DB.put("kv", { key: "md_stats_adj", val: adjs });
+
         this.refresh();
       },
 
@@ -2239,6 +2376,7 @@
         const panel = document.getElementById("dropInputPanel");
         const mdName = panel.dataset.md;
         const charName = panel.dataset.char;
+        const logId = Number(panel.dataset.logId);
         const items = {};
         document.querySelectorAll(".drop-input").forEach(el => {
           const q = Number(el.value);
@@ -2247,7 +2385,8 @@
         });
         if (Object.keys(items).length === 0) return ui.closeDropPanel();
 
-        const log = { mdName, charName, items, date: Date.now() };
+        // toggle時に作成されたログを更新
+        const log = { id: logId, mdName, charName, items, date: Date.now() };
         await DB.put("drop_logs", log);
 
         let mdDeleted = await DB.getKV("md_stats_deleted") || [];
