@@ -1,0 +1,3507 @@
+<!-- shell.html: 統合ダッシュボード構造 -->
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RoLog ✨</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style id="themeStyle"></style>
+  <style>
+    /* style.css: 統合デザインシステム */
+    :root {
+      --bg: #0f172a;
+      --bg-soft: #1e293b;
+      --text: #f1f5f9;
+      --primary: #6366f1;
+      --secondary: #334155;
+      --accent1: #818cf8;
+      --accent2: #f43f5e;
+      --primary-text: #fbbf24;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --sidebar-bg: #0f172a;
+      --done: #064e3b;
+      --done-text: #4ade80;
+      --na: #1e293b;
+      --na-text: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      width: 240px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+
+    .brand {
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand h1 {
+      font-size: 1.2rem;
+      color: var(--accent1);
+    }
+
+    .nav-list {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      padding: 12px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: 0.2s;
+      font-size: 0.95rem;
+    }
+
+    .nav-item:hover {
+      background: var(--secondary);
+    }
+
+    .nav-item.active {
+      background: var(--primary);
+      color: var(--primary-text);
+      /* #fff 固定から変更 */
+    }
+
+    /* Main Content */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #menuToggle {
+      display: none;
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      z-index: 1100;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .tab-panel {
+      display: none;
+      height: 100%;
+    }
+
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Cards & Layout */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--accent1);
+      margin-bottom: 5px;
+    }
+
+    .stat-val {
+      font-size: 1.4rem;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .chart-container {
+      height: 250px;
+      position: relative;
+    }
+
+    /* Tables - Sticky Improvements & Responsive Height */
+    .table-wrap {
+      width: 100%;
+      overflow: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-soft);
+      position: relative;
+      max-height: calc(100vh - 200px);
+    }
+
+    .md-table-wrap {
+      max-height: calc(100vh - 100px);
+    }
+
+    /* MD進捗画面用：下の余白を最小化 */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.85rem;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+
+    /* Sticky Header with Border Protection */
+    th {
+      background: var(--primary);
+      font-weight: 600;
+      color: var(--primary-text);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: inset 0 -1px 0 var(--border), 0 1px 0 var(--border);
+    }
+
+    /* Sticky Column with Border Protection */
+    .sticky-col {
+      position: sticky;
+      left: 0;
+      background: var(--primary);
+      color: var(--primary-text);
+      z-index: 20;
+      white-space: nowrap;
+      /* 改行防止 */
+      text-align: center;
+      /* 中央揃え */
+      vertical-align: middle;
+      /* 垂直中央揃え */
+      width: 1px;
+      /* コンテンツに合わせて最小幅に縮小 */
+      padding: 10px 12px;
+      /* 左右に最低限の余白 */
+      box-shadow: inset -1px 0 0 var(--border), 1px 0 0 var(--border);
+      border-right: 2px solid var(--accent1) !important;
+    }
+
+    /* 横並び時のMDヘッダー */
+    .md-header-cell {
+      min-width: 90px;
+      max-width: none;
+      white-space: normal;
+      word-break: break-all;
+      /* 文字単位で改行 */
+      line-height: 1.2;
+      font-size: 0.8rem;
+      vertical-align: middle;
+      padding: 8px 4px;
+    }
+
+    /* 横並び時のキャラヘッダー */
+    .char-header-cell {
+      min-width: 80px;
+      max-width: none;
+      white-space: normal;
+      word-break: break-all;
+      line-height: 1.2;
+      font-size: 0.85rem;
+      vertical-align: middle;
+      /* 垂直方向も中央揃え */
+      padding: 8px 4px;
+    }
+
+    thead th.sticky-col {
+      z-index: 30;
+      top: 0;
+      background: var(--primary);
+    }
+
+    /* MD 進捗セル */
+    .cell-done {
+      background: var(--done);
+      color: var(--done-text);
+      cursor: pointer;
+    }
+
+    .cell-notdone {
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .cell-na {
+      background: var(--na);
+      color: var(--na-text);
+      opacity: 0.5;
+      cursor: pointer;
+    }
+
+    .cell-mark {
+      font-size: 1.2rem;
+      font-weight: bold;
+      line-height: 1.2;
+      display: block;
+    }
+
+    .cell-time {
+      font-size: 0.7rem;
+      opacity: 0.8;
+      display: block;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    /* セル内のコンテンツを中央に寄せるラッパー */
+    .cell-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.5rem;
+      /* セルの高さを一定に保つ */
+      width: 100%;
+    }
+
+    /* Badges */
+    .ct-badge {
+      font-size: 0.65rem;
+      padding: 2px 5px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 3px;
+      font-weight: bold;
+    }
+
+    .ct-daily {
+      background: #0ea5e9;
+      color: #fff;
+    }
+
+    .ct-3days {
+      background: #f59e0b;
+      color: #fff;
+    }
+
+    .ct-weeklyTue12 {
+      background: #8b5cf6;
+      color: #fff;
+    }
+
+    /* Forms */
+    .form-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    input,
+    select,
+    textarea {
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      outline: none;
+      font-size: 0.9rem;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      font-weight: 600;
+      transition: 0.2s;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-gold {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-danger {
+      background: var(--accent2);
+      color: #fff;
+    }
+
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+    }
+
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* Theme Grid */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .theme-card {
+      background: var(--secondary);
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      border: 2px solid transparent;
+      font-size: 0.8rem;
+    }
+
+    .theme-card.active {
+      border-color: var(--primary);
+    }
+
+    .theme-swatches {
+      display: flex;
+      height: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+
+    .theme-swatches div {
+      flex: 1;
+    }
+
+    /* Panels */
+    #dropInputPanel {
+      position: fixed;
+      right: -400px;
+      top: 0;
+      width: 350px;
+      height: 100%;
+      background: var(--sidebar-bg);
+      border-left: 1px solid var(--border);
+      z-index: 2000;
+      transition: 0.3s ease;
+      padding: 20px;
+      box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+    }
+
+    #dropInputPanel.open {
+      right: 0;
+    }
+
+    .drop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 30px;
+      z-index: 3000;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.3s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    #toast.show {
+      opacity: 1;
+      bottom: 40px;
+    }
+
+    /* Guide Section Styling */
+    .guide-section {
+      margin-bottom: 30px;
+      background: var(--bg-soft);
+      border-radius: 12px;
+      padding: 25px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .guide-section h3 {
+      margin-bottom: 15px;
+      color: var(--accent1);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .guide-section p {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      opacity: 0.9;
+      margin-bottom: 10px;
+    }
+
+    .guide-section ul {
+      padding-left: 20px;
+      margin-bottom: 10px;
+    }
+
+    .guide-section li {
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      opacity: 0.9;
+    }
+
+    /* Prompt Box */
+    .prompt-box {
+      position: relative;
+      background: #000;
+      border-radius: 8px;
+      border: 1px solid var(--primary);
+      overflow: hidden;
+      margin-top: 15px;
+    }
+
+    .prompt-box pre {
+      padding: 15px;
+      color: #4ade80;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      overflow-x: auto;
+      border-left: 4px solid var(--primary);
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 10;
+      opacity: 0.8;
+    }
+
+    .copy-btn:hover {
+      opacity: 1;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      #sidebar {
+        position: absolute;
+        transform: translateX(-100%);
+        height: 100%;
+      }
+
+      #sidebar.open {
+        transform: translateX(0);
+      }
+
+      #menuToggle {
+        display: block;
+      }
+
+      .stat-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    [contenteditable="true"] {
+      border: 1px dashed var(--border);
+      padding: 2px;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    [contenteditable="true"]:focus {
+      background: var(--bg);
+      border: 1px dashed var(--primary);
+    }
+
+    /* Card Minimize System */
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .card-head h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .min-btn {
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+
+    .min-btn:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .card.minimized {
+      padding-bottom: 10px;
+      flex: 0 1 auto !important;
+    }
+
+    .card.minimized .card-body {
+      display: none;
+    }
+
+    .card.minimized .card-head {
+      margin-bottom: 0;
+    }
+
+    /* MD Master Vertical Reduction */
+    #panel-mds .card {
+      padding: 15px;
+    }
+
+    #panel-mds .card-head {
+      margin-bottom: 10px;
+    }
+
+    #matrixTable th,
+    #matrixTable td {
+      padding: 6px 10px;
+    }
+
+    .draggable {
+      cursor: move;
+    }
+
+    .dragging {
+      opacity: 0.5;
+    }
+  </style>
+</head>
+
+<body>
+  <aside id="sidebar">
+    <div class="brand">
+      <h1>RoLog ✨</h1>
+    </div>
+    <nav class="nav-list" id="sidebarNav"></nav>
+  </aside>
+
+  <main>
+    <div id="menuToggle" onclick="ui.toggleSidebar()">☰</div>
+
+    <div class="content-area">
+      <!-- Dashboard -->
+      <section id="panel-dash" class="tab-panel">
+        <div class="stat-grid">
+          <div class="card">
+            <div class="card-head">
+              <h2>総資産</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+            </div>
+            <div class="card-body">
+              <div id="totalAssets" class="stat-val">0 z</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2>所持金合計</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+            </div>
+            <div class="card-body">
+              <div id="currentTotalCash" class="stat-val">0 z</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2>在庫推定価値</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+            </div>
+            <div class="card-body">
+              <div id="totalStockValue" class="stat-val" style="color:var(--accent2)">0 z</div>
+            </div>
+          </div>
+        </div>
+        <!-- Weekly Summary Comparison -->
+        <div class="card">
+          <div class="card-head">
+            <h2>⚔️ 週間活動サマリー </h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div id="weeklySummaryArea"></div>
+          </div>
+        </div>
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-head">
+              <h2>📈 収益トレンド (週次)</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="profitChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2 style="margin:0;">💰 資産推移</h2>
+              <div style="display:flex; gap:5px; margin-right:10px;">
+                <button class="btn btn-sm" onclick="ctrl.setAssetView('daily')">日次</button>
+                <button class="btn btn-sm" onclick="ctrl.setAssetView('weekly')">週次</button>
+                <button class="btn btn-sm" onclick="ctrl.setAssetView('monthly')">月次</button>
+              </div>
+              <button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="assetChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2>📊 MD別・効率分析 (平均収益)</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="mdCompareChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2>💰 月別収支統計</h2>
+              <select id="tradeYearSelect" onchange="ctrl.setTradeYear(this.value)" style="margin-right:10px;"></select>
+              <button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="tradeMonthlyChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>📋 MD別効率分析テーブル</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table id="mdEffTable">
+                <thead>
+                  <tr>
+                    <th>MD名</th>
+                    <th>実施回数</th>
+                    <th>累計収益</th>
+                    <th>平均収益</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="mdEfficiencyStats"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MD進捗 (Main) -->
+      <section id="panel-md" class="tab-panel active">
+        <div class="panel-header"
+          style="display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:10px;">
+          <div id="serverTabs" class="server-tabs" style="display:flex; gap:8px;"></div>
+          <div class="help-text" style="font-size:11px; opacity:0.8;">ドラッグ: <b>移動</b> | 左: <b>完了</b> | 右: <b>対象外</b>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="ctrl.toggleTranspose()">🔄 縦横表示切替</button>
+        </div>
+        <div id="tableArea" class="table-wrap md-table-wrap"></div>
+      </section>
+
+      <!-- 取引・在庫 -->
+      <section id="panel-trade" class="tab-panel">
+        <div class="trade-grid" style="display:grid; grid-template-columns: 1fr 1.5fr; gap:20px;">
+          <div class="card">
+            <div class="card-head">
+              <h2>💰 取引記録入力</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+            </div>
+            <div class="card-body">
+              <div class="form-vertical" style="display:flex; flex-direction:column; gap:10px;">
+                <div class="form-row">
+                  <div style="flex:1">
+                    <label style="font-size:11px; opacity:0.8; margin-bottom:4px; display:block;">取引種別</label>
+                    <select id="tradeType" style="width:100%" onchange="ctrl.updateTradeList(this.value)">
+                      <option value="sell">販売 (+)</option>
+                      <option value="buy">購入 (-)</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:11px; opacity:0.8; margin-bottom:4px; display:block;">アイテム名</label>
+                  <input id="tradeItem" list="stockItemList" placeholder="アイテム名" oninput="ctrl.updateTradeMdOptions()"
+                    style="width:100%">
+                </div>
+                <div>
+                  <label style="font-size:11px; opacity:0.8; margin-bottom:4px; display:block;">紐付けMD</label>
+                  <select id="tradeMd" style="width:100%">
+                    <option value="">紐付けMD (なし)</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <div style="flex:1">
+                    <label style="font-size:11px; opacity:0.8; margin-bottom:4px; display:block;">個数</label>
+                    <input id="tradeQty" type="number" value="1" placeholder="個数" style="width:100%">
+                  </div>
+                  <div style="flex:2">
+                    <label style="font-size:11px; opacity:0.8; margin-bottom:4px; display:block;">単価 (1個あたり)</label>
+                    <input id="tradePrice" type="text" placeholder="例: 10k, 1.5M" style="width:100%">
+                  </div>
+                  <div id="partySizeContainer" style="flex:1">
+                    <label style="font-size:11px; opacity:0.8; margin-bottom:4px; display:block;">PT人数</label>
+                    <input id="tradePartySize" type="number" value="1" min="1" placeholder="人数" style="width:100%">
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="ctrl.saveTradeLog()">取引を保存</button>
+              </div>
+              <datalist id="itemMasterList"></datalist>
+              <datalist id="stockItemList"></datalist>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <h2>📦 在庫・単価一覧 (数量編集可)</h2>
+                <label class="check-label" style="font-size:11px; font-weight:normal; opacity:0.9;">
+                  <input type="checkbox" id="showZeroStock" onchange="ctrl.toggleZeroStock(this.checked)"> 在庫0を表示
+                </label>
+              </div>
+              <button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+            </div>
+            <div class="card-body">
+              <div
+                style="margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; border:1px solid var(--border);">
+                <div style="font-size:11px; margin-bottom:5px; color:var(--accent1)">➕ 初期在庫の追加</div>
+                <div class="form-row" style="margin-bottom:0;">
+                  <input id="initStockItem" list="itemMasterList" placeholder="アイテム名" style="flex:2">
+                  <input id="initStockQty" type="number" placeholder="数量" style="flex:1">
+                  <button class="btn btn-primary btn-sm" onclick="ctrl.addInitialStock()">追加</button>
+                </div>
+              </div>
+              <div class="table-wrap scroll-y" style="max-height: 400px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>アイテム</th>
+                      <th>現在庫</th>
+                      <th>購入(費用)</th>
+                      <th>販売(売上)</th>
+                      <th>評価単価</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="stockBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:20px">
+          <div class="card-head">
+            <h2>📊 取引履歴 (直接編集可能)</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>日時</th>
+                    <th>種別</th>
+                    <th>アイテム</th>
+                    <th>紐付MD</th>
+                    <th>個数</th>
+                    <th>単価</th>
+                    <th>合計</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="tradeLogFull"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MVPc -->
+      <section id="panel-mvp" class="tab-panel">
+        <div class="mvp-hero card">
+          <div class="card-head">
+            <h2>👑 MVPc カウンター</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div class="hero-main" style="text-align:center;">
+              <div class="stat-label">排出からの累計討伐数</div>
+              <div id="globalKills" class="global-counter"
+                style="font-size:3rem; font-weight:800; color:var(--accent1); margin:10px 0;">0</div>
+              <div class="hero-btns" style="display:flex; gap:12px; justify-content:center; margin-bottom:20px;">
+                <button class="btn btn-primary" onclick="ctrl.addKills(1)">+1 討伐</button>
+                <button class="btn btn-gold" onclick="ctrl.addNowHist()">カード獲得！</button>
+                <button class="btn btn-secondary btn-sm" onclick="ctrl.addEmptyHist()">手動行追加</button>
+                <button class="btn btn-secondary btn-sm" onclick="ctrl.setCustomKills()">任意数設定</button>
+              </div>
+            </div>
+            <div id="lifetimeSummary" class="table-wrap" style="width:100%; margin-top:10px;">
+              <table style="background:rgba(0,0,0,0.2)">
+                <thead>
+                  <tr>
+                    <th>累計枚数</th>
+                    <th>累計討伐</th>
+                    <th>累計Zeny</th>
+                    <th>平均討伐/枚</th>
+                    <th>平均単価/枚</th>
+                  </tr>
+                </thead>
+                <tbody id="lifetimeStats"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>📊 年度別統計</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div id="annualStats" class="stat-grid"
+              style="grid-template-columns:repeat(auto-fill, minmax(100px, 1fr));">
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>👑 MVP履歴 (ペースト入力対応)</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table onpaste="ctrl.handlePaste(event)">
+                <thead>
+                  <tr>
+                    <th>排出日</th>
+                    <th>カード名</th>
+                    <th>討伐数</th>
+                    <th>売却額</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="histBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- キャラマスタ -->
+      <section id="panel-chars" class="tab-panel">
+        <div class="card">
+          <div class="card-head">
+            <h2>👤 キャラクター登録</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:15px;">
+              <div>
+                <div style="font-size:12px; opacity:0.7; margin-top:5px;">
+                  現在の基準日時: <b id="globalBaseDateDisp">-</b>
+                </div>
+              </div>
+              <button class="btn btn-gold btn-sm" onclick="ctrl.setAllBaseMoney()">💰 現在の所持金を基準点として保存</button>
+            </div>
+            <div class="form-row"><input id="cName" placeholder="名前" style="flex:2"><input id="cServer" placeholder="鯖"
+                style="flex:1"><input id="cLv" type="number" placeholder="Lv" style="flex:1"><input id="cJob"
+                placeholder="職" style="flex:2"><button class="btn btn-primary" onclick="ctrl.addChar()">登録</button>
+            </div>
+            <div style="margin-top:20px;">
+              <h3>🤖 JSON 一括登録</h3>
+              <textarea id="bulkCharJson" class="bulk-area"
+                placeholder='[{"name": "キャラ名", "lv": 250, "job": "職", "server": "B", "order": 0}]'
+                style="width:100%; height:80px;"></textarea>
+              <button class="btn btn-gold btn-sm" onclick="ctrl.bulkAddChars()">一括登録実行</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>📋 キャラクターリスト (直接編集可)</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table id="charTable" onpaste="ctrl.handlePasteChar(event)">
+                <thead id="charHead">
+                  <tr>
+                    <th>名前</th>
+                    <th>鯖</th>
+                    <th>Lv</th>
+                    <th>職</th>
+                    <th>基準所持金</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="charBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MDマスタ -->
+      <section id="panel-mds" class="tab-panel">
+        <div class="card">
+          <div class="card-head">
+            <h2>🗓️ MD・アイテムマスタ</h2>
+            <div style="display:flex; gap:8px; margin-right:10px;">
+              <button class="btn btn-gold btn-sm" onclick="ctrl.loadDefaultMds()">デフォルト適用</button>
+              <button class="btn btn-primary btn-sm" onclick="ctrl.toggleTransposeMaster()">🔄 行列入れ替え</button>
+            </div>
+            <button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table id="matrixTable">
+                <thead id="matrixHead"></thead>
+                <tbody id="matrixBody"></tbody>
+              </table>
+            </div>
+            <div class="form-row" style="margin-top:20px;">
+              <input id="newMdName" placeholder="新規MD名" style="flex:2">
+              <select id="newMdCt" style="flex:1">
+                <option value="daily">翌日 05:00</option>
+                <option value="3days">3日 05:00</option>
+                <option value="weeklyTue12">週間 12:00</option>
+              </select>
+              <input id="newMdMvp" type="number" value="1" style="width:60px" placeholder="MVP"><button
+                class="btn btn-primary" onclick="ctrl.addSingleMd()">MD追加</button>
+            </div>
+            <div class="form-row" style="margin-top:10px;">
+              <input id="newGlobalItem" placeholder="新アイテム名" style="flex:2">
+              <button class="btn btn-primary" onclick="ctrl.addItemMaster()">マスタへ追加</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>💰 NPC価格マスタ (自動売却設定)</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div class="help-text" style="font-size:11px; margin-bottom:10px; opacity:0.8;">
+              ここに登録されたアイテムは、ドロップ記録時に<b>自動的にNPC売却（現金化）</b>として処理されます。<br>
+              登録されていないアイテムは、そのまま<b>在庫（Inventory）</b>として保持されます。
+            </div>
+            <div class="table-wrap scroll-y" style="max-height: 400px;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>アイテム名</th>
+                    <th>NPC価格</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="npcMasterBody"></tbody>
+              </table>
+            </div>
+            <div class="form-row" style="margin-top:15px;">
+              <input id="npcItemName" list="itemMasterList" placeholder="アイテム名" style="flex:2">
+              <input id="npcItemPrice" type="text" placeholder="単価 (例: 124k)" style="flex:1">
+              <button class="btn btn-primary" onclick="ctrl.addNpcPrice()">追加</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 設定・テーマ -->
+      <section id="panel-settings" class="tab-panel">
+        <div class="card">
+          <div class="card-head">
+            <h2>⚙️ 表示・動作設定</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div class="form-row" style="gap:20px; flex-wrap:wrap;">
+              <label class="check-label"><input type="checkbox" id="cfgShowLv"
+                  onchange="ctrl.updateConfig('showLv', this.checked)"> BaseLvを表示</label>
+              <label class="check-label"><input type="checkbox" id="cfgShowJob"
+                  onchange="ctrl.updateConfig('showJob', this.checked)"> 職業名を表示</label>
+              <label class="check-label"><input type="checkbox" id="cfgMoneyMode"
+                  onchange="ctrl.updateConfig('moneyMode', this.checked)"> 金策分析モードを有効化</label>
+              <label class="check-label"><input type="checkbox" id="cfgUsePrefix"
+                  onchange="ctrl.updateConfig('usePrefix', this.checked)"> 単位接頭辞（k, M, G）を使用する</label>
+              <label class="check-label"><input type="checkbox" id="cfgUseNRate"
+                  onchange="ctrl.updateConfig('useNRate', this.checked)"> N鯖のキャラの所持金はN鯖レート(x1000)にする</label>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>🎨 テーマ選択 (全60種)</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div id="themeGrid" class="theme-grid"></div>
+            <div style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border);">
+              <h3>🛠️ カスタムテーマ編集</h3>
+              <div id="customThemeEditor"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>💾 データ管理</h2><button class="min-btn" onclick="ui.toggleMin(this)">–</button>
+          </div>
+          <div class="card-body">
+            <div class="btn-group" style="display:flex; gap:10px;"><button class="btn btn-primary"
+                onclick="ctrl.exportData()">📥 バックアップ出力</button><button class="btn btn-primary"
+                onclick="document.getElementById('importFile').click()">📤 インポート読込</button><input type="file"
+                id="importFile" style="display:none" onchange="ctrl.importData(event)"><button class="btn btn-danger"
+                onclick="ctrl.clearAll()">⚠️ 全データ消去</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ガイド -->
+      <section id="panel-guide" class="tab-panel">
+        <div class="guide-section">
+          <h3>🌟 はじめての初期設定</h3>
+          <p>まずは以下の手順であなたの環境をセットアップしましょう。</p>
+          <ul>
+            <li><b>キャラクター登録:</b> 「キャラマスタ」で登録します。公式の「キャラクター情報」の画像をAIに渡すと、一括登録用のJSONを生成してくれます（下部のプロンプトを参照）。</li>
+            <li><b>MDマスタの初期化:</b> 「MDマスタ」で「デフォルト適用」を押すと、主要なMDとドロップ品がセットされます。</li>
+            <li><b>金策モードの有効化:</b> 「設定」タブで「金策分析モードを有効化」にチェックを入れます。</li>
+            <li><b>資産の基準設定:</b> キャラマスタで各キャラの所持金を記入し、「基準点として保存」を押すと、その時点を資産計算のスタート（0日目）として設定します。</li>
+          </ul>
+        </div>
+
+        <div class="guide-section">
+          <h3>⚔️ 通常MD / MVPc 記録の運用</h3>
+          <p>日々の周回の記録は非常に簡単です。</p>
+          <ul>
+            <li><b>MD進捗:</b> 周回が終わったらセルを左クリックしてチェック（✔）を入れます。右クリックで「対象外（－）」にできます。</li>
+            <li><b>ドロップ入力:</b> チェック時にドロップ入力が開きます。数量を入れると、アイテムマスタに設定された価格で自動的に売却履歴が作成されます。</li>
+            <li><b>MVP討伐数:</b> MDマスタに設定されたMVP数が自動で加算されます。チェックを外すと正しく減算されます。</li>
+            <li><b>CT管理:</b> 次回のリセット時間が表示され、時間を過ぎると自動的に未完了状態に戻ります。</li>
+          </ul>
+        </div>
+
+        <div class="guide-section">
+          <h3>💰 売買履歴・資産管理の運用</h3>
+          <p>取引や在庫を詳細に管理して、収支を可視化します。</p>
+          <ul>
+            <li><b>取引入力:</b> 露店での売買は「取引・在庫」タブで記録します。`100k`や`1.5M`といった単位入力が可能です。</li>
+            <li><b>在庫の調整:</b> 在庫一覧の数量を直接書き換えることで、手動の棚卸しが可能です。これは履歴を増やさずに在庫数のみを修正します。</li>
+            <li><b>分析グラフ:</b> ダッシュボードで週次収益のトレンドや、どのMDが最も稼げているかをひと目で把握できます。</li>
+          </ul>
+        </div>
+
+        <div class="guide-section">
+          <h3>👑 MVPc・統計の運用</h3>
+          <p>MVPカードの獲得記録と、討伐効率を管理します。</p>
+          <ul>
+            <li><b>討伐カウント:</b> MD進捗でMVP設定があるMDをチェックすると、自動的に討伐数が加算されます。</li>
+            <li><b>カード獲得:</b> 「カード獲得！」ボタンを押すと、現在の討伐数をそのカードの記録として保存し、カウンターをリセットします。</li>
+            <li><b>年度別統計:</b> 過去の獲得枚数や累計Zeny、平均討伐数などを年度別に振り返ることができます。</li>
+          </ul>
+        </div>
+
+        <div class="guide-section">
+          <h3>⚠️ その他注意点</h3>
+          <ul>
+            <li><b>データの保存:</b> 本ツールはブラウザのローカルDB（IndexedDB）を使用しています。キャッシュ消去などでデータが消えないよう、定期的に「バックアップ出力」を行ってください。</li>
+            <li><b>N鯖キャラの扱い:</b> 設定で「N鯖レート」をONにすると、N鯖キャラの所持金のみ1000倍で合算されます。取引ログには適用されません。</li>
+            <li><b>Zeny入力:</b> 接頭辞（k, M, G）を使って入力できますが、保存後は分かりやすさのためカンマ区切りの数値として表示されます。</li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-top:20px;">
+          <h3>🤖 AI一括登録用プロンプト</h3>
+          <div class="prompt-box">
+            <button class="btn btn-sm btn-secondary copy-btn" onclick="ctrl.copyPrompt()">コピー</button>
+            <pre id="geminiPrompt">この画像に写っているキャラクター名、BaseLv、職業、およびサーバー名をすべて抽出し、以下のJSON形式で出力してください。余計な解説は一切不要です。
+[
+  { "name": "キャラ名", "lv": 250, "job": "職業名", "server": "サーバー名", "order": 0 },
+  { "name": "キャラ名", "lv": 240, "job": "職業名", "server": "サーバー名", "order": 1 }
+]</pre>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="dropInputPanel">
+    <div class="drop-header">
+      <h2 id="dropTitle">ドロップ入力</h2><button class="close-btn" onclick="ui.closeDropPanel()">×</button>
+    </div>
+    <div id="dropFields" class="drop-fields"></div>
+    <button class="btn btn-primary btn-block" onclick="ctrl.saveDropLog()">記録を保存</button>
+  </div>
+  <div id="toast"></div>
+
+  <script>
+    const NPC = { "豪華な宝箱": 1000000, "白金": 124000, "金塊": 62000, "銀塊": 31000, "宝箱": 186000, "DV&シャドウ": 124000 };
+    const DEFAULT_MDS = [
+      {
+        "name": "悔恨の墓",
+        "ctType": "weeklyTue12",
+        "mvp": 4,
+        "items": {
+          "ミネアス": 40,
+          "エーテルアクアマリン": 0,
+          "宝箱": 4,
+          "白金": 4,
+          "金塊": 4,
+          "銀塊": 4
+        },
+        "order": 0
+      },
+      {
+        "name": "呪いの剣士",
+        "ctType": "daily",
+        "mvp": 1,
+        "items": {},
+        "order": 1
+      },
+      {
+        "name": "変えられない最後",
+        "ctType": "weeklyTue12",
+        "mvp": 2,
+        "items": {
+          "ウィグナー商会交換証": 100,
+          "呪いの象徴": 60,
+          "堕ちた蛇の象徴": 5,
+          "エーテルアクアマリン": 0,
+          "トリスカードの欠片": 0,
+          "ガラシア・ネリウスカードの欠片": 0,
+          "イルジェ・エル・ハイネンカードの欠片": 0,
+          "オーレリー・プティカードの欠片": 0,
+          "ヨハンカードの欠片": 0,
+          "ラライラ・ナザール・ウィグナーカードの欠片": 0,
+          "エフェスト・バルター・メガスカードの欠片": 0,
+          "イアナ・オペルタカードの欠片": 0,
+          "タンカードの欠片": 0,
+          "ギュンターカードの欠片": 0,
+          "ラインハルト・レベンブルグカードの欠片": 0,
+          "アイヴァン・ウィグナーカードの欠片": 0,
+          "マリステラ・バルターカードの欠片": 0,
+          "ヴィルヘルム・レベンブルグカードの欠片": 0,
+          "ラウラ・バルダリスカードの欠片": 0,
+          "リハルト・リハルトカードの欠片": 0,
+          "ナドヨカードの欠片": 0,
+          "リーカードの欠片": 0,
+          "ハーウェル・メガス・バルターカードの欠片": 0
+        },
+        "order": 2
+      },
+      {
+        "name": "欺瞞の別荘",
+        "ctType": "weeklyTue12",
+        "mvp": 4,
+        "items": {
+          "アメジストの欠片": 45,
+          "浄化図面の束": 0,
+          "浄化の聖水": 0,
+          "エーテルアクアマリン": 0
+        },
+        "order": 3
+      },
+      {
+        "name": "旧バルター号捜索",
+        "ctType": "daily",
+        "mvp": 1,
+        "items": {
+          "ウィグナー商会交換証": 20
+        },
+        "order": 4
+      },
+      {
+        "name": "シミュレーション戦闘",
+        "ctType": "weeklyTue12",
+        "mvp": 2,
+        "items": {
+          "小さな氷華の魔石": 100,
+          "氷華の魔石": 0,
+          "エーテルアクアマリン": 0,
+        },
+        "order": 5
+      },
+      {
+        "name": "星座の塔",
+        "ctType": "weeklyTue12",
+        "mvp": 17,
+        "items": {
+          "メテオライトの欠片": 1,
+          "ナハトズィーガーの魂": 0,
+          "ベテルギウスの魂": 0
+        },
+        "order": 6
+      },
+      {
+        "name": "生体工学研究所の記録（4th）",
+        "ctType": "weeklyTue12",
+        "mvp": 2,
+        "items": {
+          "生体実験の破片": 3,
+          "思念のオーラ": 0,
+          "宝箱": 5,
+          "金塊": 2,
+          "銀塊": 2,
+          "白金": 2
+        },
+        "order": 7
+      },
+      {
+        "name": "生命の殿堂",
+        "ctType": "weeklyTue12",
+        "mvp": 1,
+        "items": {
+          "生命の真理": 1,
+          "生命の循環": 0,
+          "フローラルペガサスの象徴": 0,
+          "コーラルマリンの珊瑚": 0,
+          "メイプルツリーの枝": 0,
+          "モナークペンギンの氷結晶": 0
+        },
+        "order": 8
+      },
+      {
+        "name": "特異点 生体工学研究所",
+        "ctType": "weeklyTue12",
+        "mvp": 1,
+        "items": {
+          "思念体の渇き": 60,
+          "古いカード帖": 2,
+          "白金": 4,
+          "金塊": 3,
+          "銀塊": 4,
+          "思念体の冷気": 0,
+          "思念体の憤怒": 0,
+          "豪華な宝箱": 0
+        },
+        "order": 9
+      },
+      {
+        "name": "特異点 名もなき島",
+        "ctType": "weeklyTue12",
+        "mvp": 2,
+        "items": {
+          "古いカード帖": 10,
+          "豪華な宝箱": 10,
+          "宝箱": 19,
+          "金塊": 17,
+          "銀塊": 18,
+          "暴食の宝玉": 200,
+          "暴食の魔石": 1,
+          "暴食の欠片": 0,
+          "白金": 17
+        },
+        "order": 10
+      },
+      {
+        "name": "呪われた次元（4th）",
+        "ctType": "weeklyTue12",
+        "mvp": 3,
+        "items": {
+          "時間の宝石": 200,
+          "時間の赤水晶": 50,
+          "凝縮した魔血": 50,
+          "凝固された魔力": 50,
+          "豪華な宝箱": 8,
+          "金塊": 17,
+          "宝箱": 17,
+          "白金": 17,
+          "銀塊": 17,
+          "時間の結晶": 50,
+          "輝く時間の宝石": 1
+        },
+        "order": 11
+      },
+      {
+        "name": "夢幻の迷宮",
+        "ctType": "weeklyTue12",
+        "mvp": 22,
+        "items": {
+          "エーテルアクアマリン": 1,
+          "エーテルトパーズ": 0,
+          "DV&シャドウ": 0,
+          "黄金の魔力結晶": 1
+        },
+        "order": 12
+      },
+      {
+        "name": "封じられた不死者",
+        "ctType": "weeklyTue12",
+        "mvp": 2,
+        "items": {
+          "小さな氷華の魔石": 60,
+          "氷華の魔石": 0,
+          "エーテルアクアマリン": 0,
+          "神聖な猫のひげ": 100,
+          "蛇神の鱗": 10
+        },
+        "order": 13
+      },
+      {
+        "name": "ファロス燈台地下迷宮",
+        "ctType": "weeklyTue12",
+        "mvp": 10,
+        "items": {
+          "壊れた高純度の魔法石": 0,
+          "壊れた魔法石": 0
+        },
+        "order": 14
+      }
+    ];
+    const THEMES = {
+      "deep": { "bg": "#0f0e17", "bg2": "#1a1927", "bg3": "#242336", "bord": "#3a3858", "acc": "#7c6af7", "acc2": "#a78bfa", "gold": "#ffffff", "txt": "#e2e0ff", "txt2": "#9895b5", "d": "#132320", "d_t": "#4ade80", "d_b": "#10b981", "nd": "#2a1a1a", "nd_t": "#f87171", "nd_b": "#ef4444" },
+      "ocean": { "bg": "#0b1120", "bg2": "#111827", "bg3": "#1f2937", "bord": "#374151", "acc": "#3b82f6", "acc2": "#60a5fa", "gold": "#ffffff", "txt": "#f1f5f9", "txt2": "#94a3b8", "d": "#064e3b", "d_t": "#34d399", "d_b": "#10b981", "nd": "#451212", "nd_t": "#f87171", "nd_b": "#ef4444" },
+      "dracula": { "bg": "#282a36", "bg2": "#343746", "bg3": "#44475a", "bord": "#6272a4", "acc": "#bd93f9", "acc2": "#ff79c6", "gold": "#ffffff", "txt": "#f8f8f2", "txt2": "#bd93f9", "d": "#2d4f3b", "d_t": "#50fa7b", "d_b": "#50fa7b", "nd": "#4d2b2b", "nd_t": "#ff5555", "nd_b": "#ff5555" },
+      "nord": { "bg": "#2e3440", "bg2": "#3b4252", "bg3": "#434c5e", "bord": "#4c566a", "acc": "#88c0d0", "acc2": "#81a1c1", "gold": "#2e3440", "txt": "#eceff4", "txt2": "#d8dee9", "d": "#3b4f41", "d_t": "#a3be8c", "d_b": "#a3be8c", "nd": "#4c3a3a", "nd_t": "#bf616a", "nd_b": "#bf616a" },
+      "midnight": { "bg": "#020617", "bg2": "#0f172a", "bg3": "#1e293b", "bord": "#334155", "acc": "#38bdf8", "acc2": "#7dd3fc", "gold": "#020617", "txt": "#f8fafc", "txt2": "#94a3b8", "d": "#052e16", "d_t": "#4ade80", "d_b": "#22c55e", "nd": "#450a0a", "nd_t": "#f87171", "nd_b": "#ef4444" },
+      "charcoal": { "bg": "#171717", "bg2": "#262626", "bg3": "#404040", "bord": "#525252", "acc": "#a855f7", "acc2": "#d8b4fe", "gold": "#ffffff", "txt": "#fafafa", "txt2": "#a3a3a3", "d": "#14532d", "d_t": "#4ade80", "d_b": "#22c55e", "nd": "#7f1d1d", "nd_t": "#f87171", "nd_b": "#ef4444" },
+      "slate": { "bg": "#0f172a", "bg2": "#1e293b", "bg3": "#334155", "bord": "#475569", "acc": "#0ea5e9", "acc2": "#38bdf8", "gold": "#ffffff", "txt": "#f1f5f9", "txt2": "#94a3b8", "d": "#064e3b", "d_t": "#4ade80", "d_b": "#10b981", "nd": "#451212", "nd_t": "#f87171", "nd_b": "#ef4444" },
+      "gruvbox_d": { "bg": "#1d2021", "bg2": "#282828", "bg3": "#3c3836", "bord": "#504945", "acc": "#fe8019", "acc2": "#fabd2f", "gold": "#1d2021", "txt": "#ebdbb2", "txt2": "#a89984", "d": "#32302f", "d_t": "#b8bb26", "d_b": "#b8bb26", "nd": "#3c1e1e", "nd_t": "#fb4934", "nd_b": "#fb4934" },
+      "one_dark": { "bg": "#21252b", "bg2": "#282c34", "bg3": "#353b45", "bord": "#4b5263", "acc": "#61afef", "acc2": "#c678dd", "gold": "#21252b", "txt": "#abb2bf", "txt2": "#5c6370", "d": "#2c313a", "d_t": "#98c379", "d_b": "#98c379", "nd": "#3e3131", "nd_t": "#e06c75", "nd_b": "#e06c75" },
+      "forest_d": { "bg": "#022c22", "bg2": "#064e3b", "bg3": "#065f46", "bord": "#047857", "acc": "#10b981", "acc2": "#34d399", "gold": "#022c22", "txt": "#ecfdf5", "txt2": "#a7f3d0", "d": "#065f46", "d_t": "#34d399", "d_b": "#10b981", "nd": "#451a1a", "nd_t": "#f87171", "nd_b": "#ef4444" },
+      "snow": { "bg": "#f8fafc", "bg2": "#ffffff", "bg3": "#f1f5f9", "bord": "#cbd5e1", "acc": "#2563eb", "acc2": "#60a5fa", "gold": "#ffffff", "txt": "#0f172a", "txt2": "#475569", "d": "#dcfce7", "d_t": "#166534", "d_b": "#22c55e", "nd": "#fee2e2", "nd_t": "#991b1b", "nd_b": "#ef4444" },
+      "ivory": { "bg": "#fafaf9", "bg2": "#ffffff", "bg3": "#f5f5f4", "bord": "#d6d3d1", "acc": "#d97706", "acc2": "#f59e0b", "gold": "#ffffff", "txt": "#1c1917", "txt2": "#57534e", "d": "#ecfccb", "d_t": "#3f6212", "d_b": "#84cc16", "nd": "#fff1f1", "nd_t": "#991b1b", "nd_b": "#ef4444" },
+      "paper": { "bg": "#ffffff", "bg2": "#f5f5f5", "bg3": "#e5e5e5", "bord": "#a3a3a3", "acc": "#000000", "acc2": "#404040", "gold": "#ffffff", "txt": "#171717", "txt2": "#525252", "d": "#d1fae5", "d_t": "#065f46", "d_b": "#10b981", "nd": "#fee2e2", "nd_t": "#7f1d1d", "nd_b": "#ef4444" },
+      "sky": { "bg": "#f0f9ff", "bg2": "#ffffff", "bg3": "#e0f2fe", "bord": "#7dd3fc", "acc": "#0284c7", "acc2": "#0ea5e9", "gold": "#ffffff", "txt": "#0c4a6e", "txt2": "#0369a1", "d": "#dcfce7", "d_t": "#166534", "d_b": "#22c55e", "nd": "#fff1f1", "nd_t": "#991b1b", "nd_b": "#ef4444" },
+      "mint": { "bg": "#f0fdf4", "bg2": "#ffffff", "bg3": "#dcfce7", "bord": "#86efac", "acc": "#059669", "acc2": "#10b981", "gold": "#ffffff", "txt": "#064e3b", "txt2": "#047857", "d": "#dcfce7", "d_t": "#166534", "d_b": "#22c55e", "nd": "#fff1f1", "nd_t": "#991b1b", "nd_b": "#ef4444" },
+      "rose": { "bg": "#fff1f2", "bg2": "#ffffff", "bg3": "#ffe4e6", "bord": "#fda4af", "acc": "#e11d48", "acc2": "#fb7185", "gold": "#ffffff", "txt": "#4c0519", "txt2": "#9f1239", "d": "#dcfce7", "d_t": "#166534", "d_b": "#22c55e", "nd": "#fff1f1", "nd_t": "#991b1b", "nd_b": "#ef4444" },
+      "lavender": { "bg": "#f5f3ff", "bg2": "#ffffff", "bg3": "#ede9fe", "bord": "#c4b5fd", "acc": "#7c3aed", "acc2": "#a78bfa", "gold": "#ffffff", "txt": "#2e1065", "txt2": "#5b21b6", "d": "#dcfce7", "d_t": "#166534", "d_b": "#22c55e", "nd": "#fff1f1", "nd_t": "#991b1b", "nd_b": "#ef4444" },
+      "solar_l": { "bg": "#fdf6e3", "bg2": "#eee8d5", "bg3": "#e5dfcc", "bord": "#93a1a1", "acc": "#268bd2", "acc2": "#2aa198", "gold": "#fdf6e3", "txt": "#657b83", "txt2": "#586e75", "d": "#dcfce7", "d_t": "#859900", "d_b": "#859900", "nd": "#fff1f1", "nd_t": "#dc322f", "nd_b": "#dc322f" },
+      "latte": { "bg": "#eff1f5", "bg2": "#e6e9ef", "bg3": "#ccd0da", "bord": "#bcc0cc", "acc": "#1e66f5", "acc2": "#7287fd", "gold": "#eff1f5", "txt": "#4c4f69", "txt2": "#6c6f85", "d": "#dce0e8", "d_t": "#40a02b", "d_b": "#40a02b", "nd": "#e6e9ef", "nd_t": "#d20f39", "nd_b": "#d20f39" },
+      "zinc_l": { "bg": "#fafafa", "bg2": "#ffffff", "bg3": "#f4f4f5", "bord": "#e4e4e7", "acc": "#18181b", "acc2": "#3f3f46", "gold": "#fafafa", "txt": "#09090b", "txt2": "#71717a", "d": "#ecfccb", "d_t": "#166534", "d_b": "#22c55e", "nd": "#fff1f1", "nd_t": "#991b1b", "nd_b": "#ef4444" },
+      "cyberpunk": { "bg": "#000b1e", "bg2": "#00162d", "bg3": "#002a4a", "bord": "#0055ff", "acc": "#f0ff00", "acc2": "#00ff00", "gold": "#000b1e", "txt": "#00f0ff", "txt2": "#70ffff", "d": "#002a4a", "d_t": "#00ff00", "d_b": "#00ff00", "nd": "#2d0016", "nd_t": "#ff0000", "nd_b": "#ff0000" },
+      "synthwave": { "bg": "#262335", "bg2": "#241b30", "bg3": "#3e2f5b", "bord": "#ff7edb", "acc": "#ff7edb", "acc2": "#36f9f6", "gold": "#262335", "txt": "#ffffff", "txt2": "#b197d1", "d": "#241b30", "d_t": "#36f9f6", "d_b": "#36f9f6", "nd": "#3e2f5b", "nd_t": "#ff7edb", "nd_b": "#ff7edb" },
+      "terminal": { "bg": "#0a0a0a", "bg2": "#000000", "bg3": "#1a1a1a", "bord": "#004400", "acc": "#00ff00", "acc2": "#00cc00", "gold": "#0a0a0a", "txt": "#00ff00", "txt2": "#008800", "d": "#000000", "d_t": "#00ff00", "d_b": "#00ff00", "nd": "#000000", "nd_t": "#00cc00", "nd_b": "#00cc00" },
+      "coffee": { "bg": "#1b1411", "bg2": "#2a1e1a", "bg3": "#3e2c26", "bord": "#5d4037", "acc": "#d7ccc8", "acc2": "#bcaaa4", "gold": "#1b1411", "txt": "#efebe9", "txt2": "#d7ccc8", "d": "#3e2c26", "d_t": "#a5d6a7", "d_b": "#a5d6a7", "nd": "#2a1e1a", "nd_t": "#ef9a9a", "nd_b": "#ef9a9a" },
+      "royal": { "bg": "#0f172a", "bg2": "#1e293b", "bg3": "#334155", "bord": "#facc15", "acc": "#facc15", "acc2": "#fde047", "gold": "#0f172a", "txt": "#f8fafc", "txt2": "#94a3b8", "d": "#064e3b", "d_t": "#fbbf24", "d_b": "#fbbf24", "nd": "#451212", "nd_t": "#f87171", "nd_b": "#ef4444" },
+      "autumn": { "bg": "#2a1205", "bg2": "#451a03", "bg3": "#78350f", "bord": "#92400e", "acc": "#f97316", "acc2": "#fb923c", "gold": "#ffffff", "txt": "#ffedd5", "txt2": "#fdba74", "d": "#431407", "d_t": "#fde047", "d_b": "#fde047", "nd": "#2a1205", "nd_t": "#fb923c", "nd_b": "#fb923c" },
+      "neon_p": { "bg": "#000000", "bg2": "#111111", "bg3": "#222222", "bord": "#ff00ff", "acc": "#ff00ff", "acc2": "#00ffff", "gold": "#000000", "txt": "#ffffff", "txt2": "#ff00ff", "d": "#000000", "d_t": "#00ffff", "d_b": "#00ffff", "nd": "#000000", "nd_t": "#ff00ff", "nd_b": "#ff00ff" },
+      "sakura_s": { "bg": "#fff5f7", "bg2": "#ffffff", "bg3": "#ffe4e9", "bord": "#ffb7c5", "acc": "#ff8da1", "acc2": "#ffb7c5", "gold": "#ffffff", "txt": "#701a28", "txt2": "#db2777", "d": "#f0fdf4", "d_t": "#166534", "d_b": "#22c55e", "nd": "#fff1f2", "nd_t": "#991b1b", "nd_b": "#ef4444" },
+      "emerald_d": { "bg": "#022c22", "bg2": "#064e3b", "bg3": "#065f46", "bord": "#10b981", "acc": "#10b981", "acc2": "#34d399", "gold": "#022c22", "txt": "#ecfdf5", "txt2": "#a7f3d0", "d": "#065f46", "d_t": "#34d399", "d_b": "#10b981", "nd": "#451a1a", "nd_t": "#f87171", "nd_b": "#ef4444" },
+      "high_contrast": { "bg": "#000000", "bg2": "#111111", "bg3": "#222222", "bord": "#aaaaaa", "acc": "#ffffff", "acc2": "#ffff00", "gold": "#000000", "txt": "#ffffff", "txt2": "#cccccc", "d": "#000000", "d_t": "#00ff00", "d_b": "#00ff00", "nd": "#000000", "nd_t": "#ff0000", "nd_b": "#ff0000" },
+      "monokai": { "bg": "#272822", "bg2": "#1e1f1c", "bg3": "#3e3d32", "bord": "#75715e", "acc": "#a6e22e", "acc2": "#f92672", "gold": "#272822", "txt": "#f8f8f2", "txt2": "#ae81ff", "d": "#1e1f1c", "d_t": "#a6e22e", "d_b": "#a6e22e", "nd": "#1e1f1c", "nd_t": "#f92672", "nd_b": "#f92672" },
+      "night_owl": { "bg": "#011627", "bg2": "#0b2942", "bg3": "#1d3b53", "bord": "#5f7e97", "acc": "#82aaff", "acc2": "#ecc48d", "gold": "#011627", "txt": "#d6deeb", "txt2": "#7fdbca", "d": "#011627", "d_t": "#7fdbca", "d_b": "#7fdbca", "nd": "#011627", "nd_t": "#ef5350", "nd_b": "#ef5350" },
+      "tokyo_night": { "bg": "#1a1b26", "bg2": "#16161e", "bg3": "#24283b", "bord": "#414868", "acc": "#7aa2f7", "acc2": "#bb9af7", "gold": "#1a1b26", "txt": "#cfc9c2", "txt2": "#565f89", "d": "#1a1b26", "d_t": "#9ece6a", "d_b": "#9ece6a", "nd": "#1a1b26", "nd_t": "#f7768e", "nd_b": "#f7768e" },
+      "github_d": { "bg": "#0d1117", "bg2": "#161b22", "bg3": "#21262d", "bord": "#30363d", "acc": "#58a6ff", "acc2": "#bc8cff", "gold": "#0d1117", "txt": "#c9d1d9", "txt2": "#8b949e", "d": "#0d1117", "d_t": "#3fb950", "d_b": "#3fb950", "nd": "#0d1117", "nd_t": "#f85149", "nd_b": "#f85149" },
+      "github_l": { "bg": "#ffffff", "bg2": "#f6f8fa", "bg3": "#ebeff2", "bord": "#d0d7de", "acc": "#0969da", "acc2": "#8250df", "gold": "#ffffff", "txt": "#24292f", "txt2": "#57606a", "d": "#dafbe1", "d_t": "#1a7f37", "d_b": "#1a7f37", "nd": "#ffebe9", "nd_t": "#cf222e", "nd_b": "#cf222e" },
+      "vs_code_d": { "bg": "#1e1e1e", "bg2": "#252526", "bg3": "#2d2d30", "bord": "#3e3e3e", "acc": "#007acc", "acc2": "#4ec9b0", "gold": "#ffffff", "txt": "#cccccc", "txt2": "#808080", "d": "#1e1e1e", "d_t": "#6a9955", "d_b": "#6a9955", "nd": "#1e1e1e", "nd_t": "#f44747", "nd_b": "#f44747" },
+      "cobalt2": { "bg": "#193549", "bg2": "#152c3d", "bg3": "#122738", "bord": "#0d202e", "acc": "#ffc600", "acc2": "#0088ff", "gold": "#193549", "txt": "#ffffff", "txt2": "#8ff2ff", "d": "#193549", "d_t": "#3ad900", "d_b": "#3ad900", "nd": "#193549", "nd_t": "#ff628c", "nd_b": "#ff628c" },
+      "shades_purple": { "bg": "#2d2b55", "bg2": "#1e1e3f", "bg3": "#3e3e3e", "bord": "#4d4d80", "acc": "#fad000", "acc2": "#b362ff", "gold": "#2d2b55", "txt": "#ffffff", "txt2": "#a599e9", "d": "#2d2b55", "d_t": "#3ad900", "d_b": "#3ad900", "nd": "#2d2b55", "nd_t": "#ff628c", "nd_b": "#ff628c" },
+      "palenight": { "bg": "#292d3e", "bg2": "#1b1e2b", "bg3": "#32374d", "bord": "#444b6a", "acc": "#c792ea", "acc2": "#89ddff", "gold": "#292d3e", "txt": "#bfc7d5", "txt2": "#676e95", "d": "#292d3e", "d_t": "#c3e88d", "d_b": "#c3e88d", "nd": "#292d3e", "nd_t": "#f07178", "nd_b": "#f07178" },
+      "ayu_mirage": { "bg": "#212733", "bg2": "#191e2a", "bg3": "#242936", "bord": "#343f4c", "acc": "#ffcc66", "acc2": "#5ccfe6", "gold": "#212733", "txt": "#d9d7ce", "txt2": "#5c6773", "d": "#212733", "d_t": "#bae67e", "d_b": "#bae67e", "nd": "#212733", "nd_t": "#f07178", "nd_b": "#f07178" },
+      "oceanic_next": { "bg": "#1b2b34", "bg2": "#16242c", "bg3": "#343d46", "bord": "#4f5b66", "acc": "#6699cc", "acc2": "#5fb3b3", "gold": "#1b2b34", "txt": "#d8dee9", "txt2": "#65737e", "d": "#1b2b34", "d_t": "#99c794", "d_b": "#99c794", "nd": "#1b2b34", "nd_t": "#ec5f67", "nd_b": "#ec5f67" },
+      "discord": { "bg": "#313338", "bg2": "#2b2d31", "bg3": "#1e1f22", "bord": "#4e5058", "acc": "#5865f2", "acc2": "#ebedef", "gold": "#ffffff", "txt": "#dbdee1", "txt2": "#949ba4", "d": "#313338", "d_t": "#23a55a", "d_b": "#23a55a", "nd": "#313338", "nd_t": "#f23f43", "nd_b": "#f23f43" },
+      "slack_d": { "bg": "#1a1d21", "bg2": "#222529", "bg3": "#121519", "bord": "#35373b", "acc": "#4a154b", "acc2": "#36c5f0", "gold": "#ffffff", "txt": "#d1d2d3", "txt2": "#9ea0a4", "d": "#1a1d21", "d_t": "#2eb67d", "d_b": "#2eb67d", "nd": "#1a1d21", "nd_t": "#e01e5a", "nd_b": "#e01e5a" },
+      "office_d": { "bg": "#201f1e", "bg2": "#292827", "bg3": "#323130", "bord": "#484644", "acc": "#0078d4", "acc2": "#2b88d8", "gold": "#ffffff", "txt": "#ffffff", "txt2": "#a19f9d", "d": "#201f1e", "d_t": "#107c10", "d_b": "#107c10", "nd": "#201f1e", "nd_t": "#a80000", "nd_b": "#a80000" },
+      "win11_d": { "bg": "#1c1c1c", "bg2": "#2c2c2c", "bg3": "#3c3c3c", "bord": "#4c4c4c", "acc": "#0067c0", "acc2": "#4cc2ff", "gold": "#ffffff", "txt": "#ffffff", "txt2": "#a0a0a0", "d": "#1c1c1c", "d_t": "#107c10", "d_b": "#107c10", "nd": "#1c1c1c", "nd_t": "#c42b1c", "nd_b": "#c42b1c" },
+      "sublime": { "bg": "#171717", "bg2": "#212121", "bg3": "#333333", "bord": "#444444", "acc": "#f8f8f2", "acc2": "#a6e22e", "gold": "#171717", "txt": "#f8f8f2", "txt2": "#75715e", "d": "#171717", "d_t": "#a6e22e", "d_b": "#a6e22e", "nd": "#171717", "nd_t": "#f92672", "nd_b": "#f92672" },
+      "berry": { "bg": "#1e141a", "bg2": "#2d1e27", "bg3": "#3d2a35", "bord": "#5d4050", "acc": "#ff4d88", "acc2": "#ff99bb", "gold": "#ffffff", "txt": "#ffe6f2", "txt2": "#cc80a3", "d": "#1e141a", "d_t": "#00ffa2", "d_b": "#00ffa2", "nd": "#1e141a", "nd_t": "#ff4d88", "nd_b": "#ff4d88" },
+      "lucid": { "bg": "#ffffff", "bg2": "#f0f0f0", "bg3": "#e0e0e0", "bord": "#cccccc", "acc": "#0000ff", "acc2": "#0099ff", "gold": "#ffffff", "txt": "#000000", "txt2": "#666666", "d": "#e0ffe0", "d_t": "#008000", "d_b": "#008000", "nd": "#ffe0e0", "nd_t": "#cc0000", "nd_b": "#cc0000" },
+      "ayu_light": { "bg": "#fafafa", "bg2": "#ffffff", "bg3": "#f3f3f3", "bord": "#e0e0e0", "acc": "#ffaa33", "acc2": "#36a3d9", "gold": "#fafafa", "txt": "#5c6773", "txt2": "#828c99", "d": "#f0fdf4", "d_t": "#86b300", "d_b": "#86b300", "nd": "#fff1f2", "nd_t": "#f07178", "nd_b": "#f07178" },
+      "atom_l": { "bg": "#f0f0f0", "bg2": "#ffffff", "bg3": "#e5e5e5", "bord": "#d0d0d0", "acc": "#4078f2", "acc2": "#a626a4", "gold": "#ffffff", "txt": "#383a42", "txt2": "#696c77", "d": "#e0ffe0", "d_t": "#50a14f", "d_b": "#50a14f", "nd": "#ffe0e0", "nd_t": "#e45649", "nd_b": "#e45649" },
+      "magma": { "bg": "#0a0000", "bg2": "#1a0505", "bg3": "#2a0a0a", "bord": "#4a1a1a", "acc": "#ff4d00", "acc2": "#ff8800", "gold": "#ffffff", "txt": "#ffddcc", "txt2": "#ffaa88", "d": "#2a0a0a", "d_t": "#ff8800", "d_b": "#ff4d00", "nd": "#1a0505", "nd_t": "#ff4444", "nd_b": "#ff0000" },
+      "abyss": { "bg": "#00040a", "bg2": "#000814", "bg3": "#001228", "bord": "#002448", "acc": "#00aaff", "acc2": "#00ffff", "gold": "#ffffff", "txt": "#ddeeff", "txt2": "#aaccff", "d": "#001228", "d_t": "#00ffff", "d_b": "#00aaff", "nd": "#000814", "nd_t": "#ff4444", "nd_b": "#ff0000" },
+      "emerald_l": { "bg": "#f0fff4", "bg2": "#ffffff", "bg3": "#dcfce7", "bord": "#bbf7d0", "acc": "#10b981", "acc2": "#34d399", "gold": "#ffffff", "txt": "#064e3b", "txt2": "#065f46", "d": "#dcfce7", "d_t": "#107c10", "d_b": "#10b981", "nd": "#fff1f2", "nd_t": "#c2410c", "nd_b": "#f97316" },
+      "copper": { "bg": "#1a120f", "bg2": "#2a1e1a", "bg3": "#3a2a24", "bord": "#5a3a2a", "acc": "#b87333", "acc2": "#cd7f32", "gold": "#ffffff", "txt": "#eaddca", "txt2": "#c4a484", "d": "#3a2a24", "d_t": "#cd7f32", "d_b": "#b87333", "nd": "#2a1e1a", "nd_t": "#a0522d", "nd_b": "#8b4513" },
+      "lilac": { "bg": "#f8f4ff", "bg2": "#ffffff", "bg3": "#f0e6ff", "bord": "#dcd0ff", "acc": "#a020f0", "acc2": "#bf94ff", "gold": "#ffffff", "txt": "#4b0082", "txt2": "#6a0dad", "d": "#f0e6ff", "d_t": "#a020f0", "d_b": "#bf94ff", "nd": "#fff0f5", "nd_t": "#db7093", "nd_b": "#c71585" },
+      "olive": { "bg": "#1a1a00", "bg2": "#2a2a00", "bg3": "#3a3a00", "bord": "#5a5a00", "acc": "#808000", "acc2": "#9acd32", "gold": "#ffffff", "txt": "#f5f5dc", "txt2": "#bdb76b", "d": "#3a3a00", "d_t": "#9acd32", "d_b": "#808000", "nd": "#2a2a00", "nd_t": "#cd5c5c", "nd_b": "#8b0000" },
+      "plastic": { "bg": "#ffffff", "bg2": "#f0f0f0", "bg3": "#e0e0e0", "bord": "#cccccc", "acc": "#ff00ff", "acc2": "#00ffff", "gold": "#000000", "txt": "#000000", "txt2": "#333333", "d": "#00ff00", "d_t": "#000000", "d_b": "#00ff00", "nd": "#ff0000", "nd_t": "#ffffff", "nd_b": "#ff0000" },
+      "monochrome": { "bg": "#ffffff", "bg2": "#f5f5f5", "bg3": "#eeeeee", "bord": "#cccccc", "acc": "#333333", "acc2": "#666666", "gold": "#ffffff", "txt": "#000000", "txt2": "#555555", "d": "#e0e0e0", "d_t": "#000000", "d_b": "#333333", "nd": "#d0d0d0", "nd_t": "#333333", "nd_b": "#000000" },
+      "peach": { "bg": "#fff5ee", "bg2": "#ffffff", "bg3": "#ffebcd", "bord": "#ffdab9", "acc": "#ff7f50", "acc2": "#ffa07a", "gold": "#ffffff", "txt": "#8b4513", "txt2": "#d2691e", "d": "#ffebcd", "d_t": "#ff7f50", "d_b": "#ffa07a", "nd": "#fff0f5", "nd_t": "#ff4500", "nd_b": "#ff0000" },
+      "graphite": { "bg": "#1c1c1c", "bg2": "#262626", "bg3": "#303030", "bord": "#444444", "acc": "#5bc0de", "acc2": "#2eaadc", "gold": "#ffffff", "txt": "#e0e0e0", "txt2": "#b0b0b0", "d": "#303030", "d_t": "#5bc0de", "d_b": "#2eaadc", "nd": "#262626", "nd_t": "#d9534f", "nd_b": "#c9302c" }
+    };
+
+    /* logic_1.js: 基盤・進捗テーブル */
+
+    const DB = {
+      name: "RoUnified_v3_Final",
+      version: 3,
+      init() {
+        return new Promise((resolve) => {
+          const req = indexedDB.open(this.name, this.version);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains("chars")) db.createObjectStore("chars", { keyPath: "id", autoIncrement: true });
+            if (!db.objectStoreNames.contains("mds")) db.createObjectStore("mds", { keyPath: "id", autoIncrement: true });
+            if (!db.objectStoreNames.contains("progress")) db.createObjectStore("progress", { keyPath: "id", autoIncrement: true });
+            if (!db.objectStoreNames.contains("drop_logs")) db.createObjectStore("drop_logs", { keyPath: "id", autoIncrement: true });
+            if (!db.objectStoreNames.contains("trade_logs")) db.createObjectStore("trade_logs", { keyPath: "id", autoIncrement: true });
+            if (!db.objectStoreNames.contains("mvp_logs")) db.createObjectStore("mvp_logs", { keyPath: "id", autoIncrement: true });
+            if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv", { keyPath: "key" });
+          };
+          req.onsuccess = (e) => { this.db = e.target.result; resolve(); };
+        });
+      },
+      async getAll(s) { return new Promise(r => { const tx = this.db.transaction(s, "readonly"); const os = tx.objectStore(s); const req = os.getAll(); req.onsuccess = () => r(req.result); }); },
+      async put(s, v) { return new Promise(r => { const tx = this.db.transaction(s, "readwrite"); const os = tx.objectStore(s); const req = os.put(v); req.onsuccess = () => r(req.result); }); },
+      async del(s, id) { return new Promise(r => { const tx = this.db.transaction(s, "readwrite"); const os = tx.objectStore(s); const req = os.delete(id); req.onsuccess = () => r(); }); },
+      async getKV(k) { return new Promise(r => { const tx = this.db.transaction("kv", "readonly"); const os = tx.objectStore("kv"); const req = os.get(k); req.onsuccess = () => r(req.result ? req.result.val : null); }); }
+    };
+
+    const utils = {
+      parseZeny(v) {
+        if (typeof v === 'number') return v;
+        if (!v) return 0;
+        const s = v.toString().replace(/,/g, '').trim().toLowerCase();
+        const m = s.match(/^([\d.]+)([kmg])?$/);
+        if (!m) return Number(s) || 0;
+        const num = parseFloat(m[1]);
+        const unit = m[2];
+        const factors = { k: 1000, m: 1000000, g: 1000000000 };
+        return Math.floor(num * (factors[unit] || 1));
+      },
+      formatZeny(num, usePrefix, sf = 4) {
+        if (!usePrefix) return num.toLocaleString();
+        if (!num || num === 0) return "0";
+        const abs = Math.abs(num);
+        let unit = "", factor = 1;
+        if (abs >= 1e9) { unit = "G"; factor = 1e9; }
+        else if (abs >= 1e6) { unit = "M"; factor = 1e6; }
+        else if (abs >= 1e3) { unit = "k"; factor = 1e3; }
+
+        const val = num / factor;
+        const formatted = parseFloat(val.toPrecision(sf));
+        return formatted + unit;
+      }
+    };
+
+    const ui = {
+      tab(n) {
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
+        const p = document.getElementById("panel-" + n);
+        const m = document.querySelector(`[onclick="ui.tab('${n}')"]`);
+        if (p) p.classList.add("active");
+        if (m) m.classList.add("active");
+        this.closeDropPanel();
+        if (window.innerWidth <= 900) this.toggleSidebar(false);
+      },
+      toast(m) {
+        const e = document.getElementById("toast");
+        e.textContent = m; e.classList.add("show");
+        setTimeout(() => e.classList.remove("show"), 2000);
+      },
+      toggleSidebar(state) {
+        const s = document.getElementById("sidebar");
+        if (state === undefined) s.classList.toggle("open");
+        else if (state) s.classList.add("open");
+        else s.classList.remove("open");
+      },
+      openDropPanel(md, char, logId) {
+        const p = document.getElementById("dropInputPanel");
+        p.dataset.md = md; p.dataset.char = char; p.dataset.logId = logId || "";
+        document.getElementById("dropTitle").textContent = `${char} - ${md}`;
+        ctrl.renderDropFields(md);
+        p.classList.add("open");
+      },
+      closeDropPanel() { document.getElementById("dropInputPanel").classList.remove("open"); },
+      toggleMin(btn) {
+        const card = btn.closest('.card');
+        card.classList.toggle('minimized');
+        btn.textContent = card.classList.contains('minimized') ? '+' : '–';
+      }
+    };
+
+    const ctrl = {
+      isTranspose: false,
+      currentServer: "All",
+      selectedTradeYear: new Date().getFullYear(),
+      showZeroStock: false,
+
+      getTue12(date) {
+        const d = new Date(date);
+        const day = d.getDay(); // 0:日, 2:火
+        const hours = d.getHours();
+        let diff = day - 2;
+        if (diff < 0 || (diff === 0 && hours < 12)) diff += 7;
+        const reset = new Date(d);
+        reset.setDate(d.getDate() - diff);
+        reset.setHours(12, 0, 0, 0);
+        return reset.getTime();
+      },
+
+      async renderWeeklyComparison(mds, config) {
+        const trades = await DB.getAll("trade_logs");
+        const drops = await DB.getAll("drop_logs");
+        const progress = await DB.getAll("progress");
+        const area = document.getElementById("weeklySummaryArea");
+        if (!area) return;
+
+        const now = Date.now();
+        const thisWeekStart = this.getTue12(now);
+
+        // 履歴スライド処理
+        let history = await DB.getKV("summary_history") || {
+          lastResetWeek: 0,
+          last: { revenue: 0, runs: 0, mvpKills: 0 },
+          twoAgo: { revenue: 0, runs: 0, mvpKills: 0 }
+        };
+
+        // 火曜12時を跨いだか判定
+        if (thisWeekStart > history.lastResetWeek) {
+          // スライド実行（現在の「今週」の結果を「先週」へ）
+          // スライド直前の値を計算（前回の週の範囲で集計）
+          const lastWeekData = this.calculateWeekSummary(history.lastResetWeek, thisWeekStart, trades, drops, mds, progress);
+
+          history.twoAgo = history.last;
+          history.last = lastWeekData;
+          history.lastResetWeek = thisWeekStart;
+          await DB.put("kv", { key: "summary_history", val: history });
+        }
+
+        // 今週のデータを計算
+        const thisWeek = this.calculateWeekSummary(thisWeekStart, now + 1000, trades, drops, mds, progress, true);
+
+        area.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>項目</th>
+                <th>今週</th>
+                <th>先週</th>
+                <th>先々週</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>金策収益</td>
+                <td>${utils.formatZeny(thisWeek.revenue, config.usePrefix)} z</td>
+                <td>${utils.formatZeny(history.last.revenue, config.usePrefix)} z</td>
+                <td>${utils.formatZeny(history.twoAgo.revenue, config.usePrefix)} z</td>
+              </tr>
+              <tr>
+                <td>MD周回数</td>
+                <td>${thisWeek.runs} 回</td>
+                <td>${history.last.runs} 回</td>
+                <td>${history.twoAgo.runs} 回</td>
+              </tr>
+              <tr>
+                <td>MVP討伐数</td>
+                <td>${thisWeek.mvpKills} 体</td>
+                <td>${history.last.mvpKills} 体</td>
+                <td>${history.twoAgo.mvpKills} 体</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+      },
+
+      // 指定期間の集計を行うヘルパー
+      calculateWeekSummary(start, end, trades, drops, mds, progress, isCurrent = false) {
+        const t = trades.filter(x => x.date >= start && x.date < end && x.type === 'sell');
+        const d = drops.filter(x => x.date >= start && x.date < end);
+        const revenue = t.reduce((sum, x) => sum + (x.total || 0), 0);
+
+        let runs = 0;
+        if (isCurrent) {
+          // 今週分はMD進捗のチェック数（✔マーク数）と一致させる
+          runs = progress.filter(p => {
+            if (p.status !== 'done') return false;
+            const md = mds.find(m => m.id === p.mdId);
+            if (!md) return false;
+            return !this.isReset(md.ctType, p.date);
+          }).length;
+        } else {
+          // 過去分はログから集計
+          runs = d.length;
+        }
+
+        const mvpKills = d.reduce((sum, x) => {
+          const md = mds.find(m => m.name === x.mdName);
+          return sum + (md ? (md.mvp || 0) : 0);
+        }, 0);
+
+        return { revenue, runs, mvpKills };
+      },
+
+      async init() {
+        await DB.init();
+        await this.loadInitialData();
+        this.renderNav();
+        this.refresh();
+      },
+
+      async loadInitialData() {
+        const mds = await DB.getAll("mds");
+        if (mds.length === 0) {
+          for (const m of DEFAULT_MDS) await DB.put("mds", m);
+        }
+      },
+
+      async renderNav() {
+        const config = await DB.getKV("config") || {};
+        const moneyMode = !!config.moneyMode;
+        const navs = [
+          { id: "dash", icon: "📊", name: "ダッシュボード", money: true },
+          { id: "md", icon: "⚔️", name: "MD進捗" },
+          { id: "trade", icon: "💰", name: "取引・在庫", money: true },
+          { id: "mvp", icon: "👑", name: "MVPc" },
+          { id: "chars", icon: "👤", name: "キャラマスタ" },
+          { id: "mds", icon: "🗓️", name: "MDマスタ" },
+          { id: "settings", icon: "🎨", name: "設定・テーマ" },
+          { id: "guide", icon: "🚀", name: "ガイド" }
+        ];
+        const filtered = navs.filter(n => !n.money || moneyMode);
+        document.getElementById("sidebarNav").innerHTML = filtered.map(n =>
+          `<div class="nav-item ${n.id === 'md' ? 'active' : ''}" onclick="ui.tab('${n.id}')"><span>${n.icon}</span>${n.name}</div>`
+        ).join("") + `
+          <div style="margin-top:20px; padding:10px; border-top:1px solid var(--border)">
+            <a href="https://rotool.gungho.jp/item/" target="_blank" class="nav-item" style="text-decoration:none; color:inherit;">
+              <span>🔗</span>RO公式ツール
+            </a>
+          </div>
+        `;
+      },
+
+      async refresh() {
+        const mds = await DB.getAll("mds");
+        const chars = await DB.getAll("chars");
+        const progress = await DB.getAll("progress");
+        const config = await DB.getKV("config") || {};
+        const globalBaseDate = await DB.getKV("globalBaseDate");
+
+        if (document.getElementById("cfgShowLv")) document.getElementById("cfgShowLv").checked = !!config.showLv;
+        if (document.getElementById("cfgShowJob")) document.getElementById("cfgShowJob").checked = !!config.showJob;
+        if (document.getElementById("cfgMoneyMode")) document.getElementById("cfgMoneyMode").checked = !!config.moneyMode;
+        if (document.getElementById("cfgUsePrefix")) document.getElementById("cfgUsePrefix").checked = !!config.usePrefix;
+        if (document.getElementById("cfgUseNRate")) document.getElementById("cfgUseNRate").checked = !!config.useNRate;
+
+        // 状態の復元
+        this.isTranspose = !!config.isTranspose;
+        this.currentServer = config.currentServer || "All";
+
+        this.renderServerTabs(chars);
+        this.renderTable(mds, chars, progress, config);
+
+        if (config.moneyMode) {
+          this.renderWeeklyComparison(mds, config);
+          this.renderDashboard(globalBaseDate, config);
+          this.renderTradeUI(config);
+        }
+        this.renderCharList(chars, globalBaseDate, config);
+        this.renderMdMaster(mds);
+        this.renderNpcMaster();
+        this.renderMvpStats(config);
+        this.renderThemeGrid(config.theme || "deep");
+        this.updateTheme(config.theme || "deep");
+      },
+
+      renderServerTabs(chars) {
+        const serverSet = new Set();
+        chars.forEach(c => { if (c.server) serverSet.add(c.server); });
+        const servers = ["All", ...Array.from(serverSet).sort()];
+
+        document.getElementById("serverTabs").innerHTML = servers.map(s =>
+          `<button class="btn btn-sm ${this.currentServer === s ? 'btn-primary' : 'btn-secondary'}" onclick="ctrl.setServer('${s}')">${s}</button>`
+        ).join("");
+      },
+
+      async setServer(s) {
+        this.currentServer = s;
+        await this.updateConfig('currentServer', s);
+        this.refresh();
+      },
+
+      getCtLabel(type) {
+        if (type === 'daily') return '翌日';
+        if (type === '3days') return '3日';
+        if (type === 'weeklyTue12') return '週間';
+        return type;
+      },
+
+      async renderTable(mds, chars, progress, config) {
+        const area = document.getElementById("tableArea");
+        const filteredChars = (this.currentServer === "All")
+          ? chars
+          : chars.filter(c => c.server === this.currentServer);
+
+        filteredChars.sort((a, b) => (a.order || 0) - (b.order || 0));
+        mds.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        let html = "<table>";
+        if (!this.isTranspose) {
+          html += `<thead><tr><th class="sticky-col">MD名 \\ キャラ</th>`;
+          const colWidth = filteredChars.length > 0 ? `style="width:calc(100% / ${filteredChars.length})"` : "";
+          filteredChars.forEach(c => {
+            html += `<th title="${c.server || ''}" class="draggable char-header-cell" draggable="true" data-id="${c.id}" ondragstart="ctrl.onDragStartChar(event)" ondragover="ctrl.onDragOver(event)" ondrop="ctrl.onDropCharMain(event)" ${colWidth}>
+          <div>${c.name}</div>`;
+            if (config.showLv) html += `<div style="font-size:9px; opacity:0.7">Lv.${c.lv}</div>`;
+            if (config.showJob) html += `<div style="font-size:9px; opacity:0.7">${c.job}</div>`;
+            html += `</th>`;
+          });
+          html += "</tr></thead><tbody>";
+          mds.forEach(m => {
+            const doneCount = progress.filter(p => p.mdId === m.id && p.status === 'done' && !this.isReset(m.ctType, p.date) && filteredChars.some(c => c.id === p.charId)).length;
+            const totalCount = filteredChars.filter(c => {
+              const p = progress.find(x => x.mdId === m.id && x.charId === c.id);
+              return !p || p.status !== 'na';
+            }).length;
+
+            html += `<tr class="draggable" draggable="true" data-id="${m.id}" ondragstart="ctrl.onDragStartMdMain(event)" ondragover="ctrl.onDragOver(event)" ondrop="ctrl.onDropMdMain(event)">
+          <td class="sticky-col">
+            <div style="display:flex; align-items:center; justify-content:center; gap:5px; margin-bottom:2px;">
+              <div class="ct-badge ct-${m.ctType}">${this.getCtLabel(m.ctType)}</div>
+              <span style="font-size:9px; color:var(--primary-text); font-weight:700">(${doneCount}/${totalCount})</span>
+            </div>
+            <div style="font-weight:700">${m.name}</div>
+          </td>`;
+            filteredChars.forEach(c => {
+              const p = progress.find(x => x.mdId === m.id && x.charId === c.id) || { status: 'none' };
+              html += this.renderCell(m, c, p);
+            });
+            html += "</tr>";
+          });
+        } else {
+          html += `<thead><tr><th class="sticky-col">キャラ \\ MD名</th>`;
+          const colWidth = mds.length > 0 ? `style="width:calc(100% / ${mds.length})"` : "";
+          mds.forEach(m => {
+            const doneCount = progress.filter(p => p.mdId === m.id && p.status === 'done' && !this.isReset(m.ctType, p.date) && filteredChars.some(c => c.id === p.charId)).length;
+            const totalCount = filteredChars.filter(c => {
+              const p = progress.find(x => x.mdId === m.id && x.charId === c.id);
+              return !p || p.status !== 'na';
+            }).length;
+
+            html += `<th class="draggable md-header-cell" draggable="true" data-id="${m.id}" ondragstart="ctrl.onDragStartMdMain(event)" ondragover="ctrl.onDragOver(event)" ondrop="ctrl.onDropMdMain(event)" ${colWidth}>
+          <div class="ct-badge ct-${m.ctType}">${this.getCtLabel(m.ctType)}</div>
+          <div>${m.name}</div>
+          <div style="font-size:9px; color:var(--primary-text); font-weight:700">(${doneCount}/${totalCount})</div>
+        </th>`;
+          });
+          html += "</tr></thead><tbody>";
+          filteredChars.forEach(c => {
+            html += `<tr class="draggable" draggable="true" data-id="${c.id}" ondragstart="ctrl.onDragStartChar(event)" ondragover="ctrl.onDragOver(event)" ondrop="ctrl.onDropCharMain(event)">
+          <td class="sticky-col">
+            <div style="font-weight:700">${c.name}</div>`;
+            if (config.showLv || config.showJob) html += `<div style="font-size:9px; opacity:0.7">${config.showLv ? 'Lv.' + c.lv : ''} ${config.showJob ? c.job : ''}</div>`;
+            html += `</td>`;
+            mds.forEach(m => {
+              const p = progress.find(x => x.mdId === m.id && x.charId === c.id) || { status: 'none' };
+              html += this.renderCell(m, c, p);
+            });
+            html += "</tr>";
+          });
+        }
+        html += "</tbody></table>";
+        area.innerHTML = html;
+      },
+
+      renderCell(m, c, p) {
+        let cls = "cell-notdone", mark = "×", time = "";
+        if (p.status === 'done') {
+          cls = "cell-done"; mark = "✔";
+          time = this.fmtTime(this.calcNextReset(m.ctType, p.date));
+        }
+        else if (p.status === 'na') { cls = "cell-na"; mark = "－"; }
+
+        if (p.status === 'done' && this.isReset(m.ctType, p.date)) {
+          cls = "cell-notdone"; mark = "×"; time = "";
+        }
+
+        return `<td class="${cls}" onclick="ctrl.toggle(${m.id}, ${c.id})" oncontextmenu="ctrl.toggleNA(event, ${m.id}, ${c.id})">
+      <div class="cell-content">
+        <span class="cell-mark">${mark}</span>
+        ${time ? `<span class="cell-time">${time}</span>` : ''}
+      </div>
+    </td>`;
+      },
+
+      fmtTime(d) {
+        if (!d) return "";
+        const date = new Date(d);
+        return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      },
+
+      calcNextReset(type, date) {
+        const last = new Date(date);
+        const next = new Date(last);
+        if (type === 'daily') {
+          next.setDate(next.getDate() + 1); next.setHours(5, 0, 0, 0);
+        } else if (type === '3days') {
+          next.setDate(next.getDate() + 3); next.setHours(5, 0, 0, 0);
+        } else if (type === 'weeklyTue12') {
+          let diff = 2 - next.getDay(); if (diff <= 0) diff += 7;
+          next.setDate(next.getDate() + diff); next.setHours(12, 0, 0, 0);
+        }
+        return next.getTime();
+      },
+
+      isReset(type, date) {
+        const now = Date.now();
+        const nextReset = this.calcNextReset(type, date);
+        return now >= nextReset;
+      },
+
+      async toggle(mdId, charId) {
+        const progress = await DB.getAll("progress");
+        let p = progress.find(x => x.mdId === mdId && x.charId === charId);
+        if (!p) p = { mdId, charId, status: 'none' };
+
+        const mds = await DB.getAll("mds");
+        const md = mds.find(x => x.id === mdId);
+        const chars = await DB.getAll("chars");
+        const char = chars.find(x => x.id === charId);
+        const config = await DB.getKV("config") || {};
+
+        if (p.status === 'done') {
+          ui.closeDropPanel();
+          // 手動での取り消し（ミスチェック）の場合のみ減算
+          if (!this.isReset(md.ctType, p.date)) {
+            if (md && md.mvp > 0) await this.addKills(-md.mvp);
+
+            // 直近の実行ログを特定して削除
+            const logs = await DB.getAll("drop_logs");
+            const target = logs.filter(l => l.mdName === md.name && l.charName === char.name).sort((a, b) => b.date - a.date)[0];
+            if (target) {
+              await DB.del("drop_logs", target.id);
+              // 紐付く自動売却取引も削除
+              const trades = await DB.getAll("trade_logs");
+              const toDel = trades.filter(t => t.auto && t.mdName === md.name && t.date === target.date);
+              for (const t of toDel) await DB.del("trade_logs", t.id);
+            }
+          }
+          p.status = 'none'; p.date = null;
+        } else {
+          p.status = 'done'; p.date = Date.now();
+          if (md && md.mvp > 0) await this.addKills(md.mvp);
+
+          // 実行ログ（プレースホルダー）を即時作成
+          const logId = await DB.put("drop_logs", { mdName: md.name, charName: char.name, items: {}, date: p.date, isPlaceholder: true });
+
+          const hasItems = md && md.items && (Array.isArray(md.items) ? md.items.length > 0 : Object.keys(md.items).length > 0);
+          if (config.moneyMode && hasItems) ui.openDropPanel(md.name, char.name, logId);
+        }
+        await DB.put("progress", p);
+        this.refresh();
+      },
+
+      async toggleNA(e, mdId, charId) {
+        e.preventDefault();
+        ui.closeDropPanel();
+        const progress = await DB.getAll("progress");
+        let p = progress.find(x => x.mdId === mdId && x.charId === charId);
+        if (!p) p = { mdId, charId, status: 'none' };
+        p.status = (p.status === 'na') ? 'none' : 'na';
+        p.date = null;
+        await DB.put("progress", p);
+        this.refresh();
+      },
+
+      async toggleTranspose() {
+        this.isTranspose = !this.isTranspose;
+        await this.updateConfig('isTranspose', this.isTranspose);
+        this.refresh();
+      },
+
+      onDragStartChar(e) { e.dataTransfer.setData("charId", e.currentTarget.dataset.id); },
+      onDragStartMdMain(e) { e.dataTransfer.setData("mdId", e.currentTarget.dataset.id); },
+      onDragOver(e) { e.preventDefault(); },
+      async onDropCharMain(e) {
+        const id = Number(e.dataTransfer.getData("charId"));
+        const targetEl = e.currentTarget.closest("[data-id]");
+        if (!id || !targetEl) return;
+        const targetId = Number(targetEl.dataset.id);
+        if (id === targetId) return;
+        const chars = await DB.getAll("chars");
+        chars.sort((a, b) => (a.order || 0) - (b.order || 0));
+        const sIdx = chars.findIndex(x => x.id === id);
+        const tIdx = chars.findIndex(x => x.id === targetId);
+        const [item] = chars.splice(sIdx, 1);
+        chars.splice(tIdx, 0, item);
+        for (let i = 0; i < chars.length; i++) { chars[i].order = i; await DB.put("chars", chars[i]); }
+        this.refresh();
+      },
+      async onDropMdMain(e) {
+        const id = Number(e.dataTransfer.getData("mdId"));
+        const targetEl = e.currentTarget.closest("[data-id]");
+        if (!id || !targetEl) return;
+        const targetId = Number(targetEl.dataset.id);
+        if (id === targetId) return;
+        const mds = await DB.getAll("mds");
+        mds.sort((a, b) => (a.order || 0) - (b.order || 0));
+        const sIdx = mds.findIndex(x => x.id === id);
+        const tIdx = mds.findIndex(x => x.id === targetId);
+        if (sIdx === -1 || tIdx === -1) return;
+        const [item] = mds.splice(sIdx, 1);
+        mds.splice(tIdx, 0, item);
+        for (let i = 0; i < mds.length; i++) { mds[i].order = i; await DB.put("mds", mds[i]); }
+        this.refresh();
+      }
+    };
+
+    /* logic_2.js: 金策・統計・グラフ */
+
+    extend(ctrl, {
+      assetView: 'daily',
+
+      async renderDashboard(globalBaseDate, config) {
+        const chars = await DB.getAll("chars");
+        const trades = await DB.getAll("trade_logs");
+        const drops = await DB.getAll("drop_logs");
+        const npcPrices = await DB.getKV("npc_prices") || NPC;
+        const usePrefix = !!config.usePrefix;
+        const useNRate = !!config.useNRate;
+        const baseTime = globalBaseDate || 0;
+
+        let totalCashVal = 0;
+
+        // N鯖レート換算は「キャラの所持金（基準金）」のみに反映
+        chars.forEach(c => {
+          const isN = /N|N鯖|Noatun/i.test(c.server || "");
+          const money = c.money || 0;
+          totalCashVal += (useNRate && isN) ? money * 1000 : money;
+        });
+
+        // 取引ログはレート換算せずそのまま合算
+        trades.filter(t => t.date > baseTime).forEach(t => {
+          totalCashVal += (t.type === 'sell' || t.type === 'adj_plus' ? t.total : -t.total);
+        });
+
+        const stocks = await this.calcStocks(drops, trades);
+        const latestPrices = {};
+        const sortedTrades = [...trades].sort((a, b) => b.date - a.date);
+        sortedTrades.forEach(t => {
+          if (t.item && !latestPrices[t.item.trim()]) latestPrices[t.item.trim()] = t.price;
+        });
+
+        const stockVal = await this.calcTotalStockValue(stocks, npcPrices, latestPrices);
+
+        const totalAssetsVal = totalCashVal + stockVal;
+
+        if (document.getElementById("totalAssets")) document.getElementById("totalAssets").textContent = utils.formatZeny(totalAssetsVal, usePrefix, 4) + " z";
+        if (document.getElementById("currentTotalCash")) document.getElementById("currentTotalCash").textContent = utils.formatZeny(totalCashVal, usePrefix, 4) + " z";
+        if (document.getElementById("totalStockValue")) document.getElementById("totalStockValue").textContent = utils.formatZeny(stockVal, usePrefix, 4) + " z";
+
+        const mds = await DB.getAll("mds");
+        const itemOrder = await DB.getKV("md_item_order") || this.getInitialItemOrder(mds);
+
+        const yearSelect = document.getElementById("tradeYearSelect");
+        if (yearSelect && yearSelect.options.length === 0) {
+          const years = Array.from(new Set(trades.map(t => new Date(t.date).getFullYear()))).sort((a, b) => b - a);
+          if (!years.includes(new Date().getFullYear())) years.unshift(new Date().getFullYear());
+          yearSelect.innerHTML = years.map(y => `<option value="${y}" ${y == this.selectedTradeYear ? 'selected' : ''}>${y}年</option>`).join("");
+        }
+
+        this.renderCharts(trades, drops, totalAssetsVal);
+        this.renderEfficiencyTable(drops, trades, usePrefix);
+        this.renderStockList(stocks, npcPrices, latestPrices, usePrefix, itemOrder);
+        this.renderStockItemList(stocks);
+        this.renderItemMasterList(stocks, npcPrices);
+      },
+
+      async calcStocks(drops, trades) {
+        const stocks = {};
+        const adjs = await DB.getKV("stock_adjs") || {};
+        const deleted = await DB.getKV("stock_deleted") || [];
+
+        if (Array.isArray(drops)) {
+          drops.forEach(d => {
+            if (!d.items) return;
+            Object.entries(d.items).forEach(([rawItem, qty]) => {
+              const item = rawItem.trim();
+              if (!item || deleted.includes(item)) return;
+              if (!stocks[item]) stocks[item] = { qty: 0, buyQty: 0, sellQty: 0, buyTotal: 0, sellTotal: 0 };
+              stocks[item].qty += (Number(qty) || 0);
+            });
+          });
+        }
+
+        if (Array.isArray(trades)) {
+          trades.forEach(t => {
+            if (!t.item || deleted.includes(t.item.trim())) return;
+            const item = t.item.trim();
+            if (!stocks[item]) stocks[item] = { qty: 0, buyQty: 0, sellQty: 0, buyTotal: 0, sellTotal: 0 };
+            const q = Number(t.qty) || 0;
+            const total = Number(t.total) || 0;
+            if (t.type === 'sell') {
+              stocks[item].qty -= q;
+              stocks[item].sellQty += q;
+              stocks[item].sellTotal += total;
+            } else if (t.type === 'buy') {
+              stocks[item].qty += q;
+              stocks[item].buyQty += q;
+              stocks[item].buyTotal += total;
+            }
+          });
+        }
+
+        Object.entries(adjs).forEach(([rawItem, val]) => {
+          const item = rawItem.trim();
+          const v = Number(val) || 0;
+          if (stocks[item]) stocks[item].qty += v;
+          else if (!deleted.includes(item)) stocks[item] = { qty: v, buyQty: 0, sellQty: 0, buyTotal: 0, sellTotal: 0 };
+        });
+        return stocks;
+      },
+
+      async calcTotalStockValue(stocks, npcPrices, latestPrices) {
+        let val = 0;
+        Object.entries(stocks).forEach(([item, s]) => {
+          const price = latestPrices[item] || npcPrices[item] || NPC[item] || 0;
+          val += s.qty * price;
+        });
+        return val;
+      },
+
+      renderStockList(stocks, npcPrices, latestPrices, usePrefix, itemOrder) {
+        const tbody = document.getElementById("stockBody");
+        if (!tbody) return;
+
+        const chk = document.getElementById("showZeroStock");
+        if (chk) chk.checked = this.showZeroStock;
+
+        const items = Object.entries(stocks)
+          .filter(e => e[1].qty !== 0 || e[1].sellQty !== 0 || e[1].buyQty !== 0)
+          .filter(e => {
+            if (this.showZeroStock) return true;
+            return e[1].qty !== 0;
+          })
+          .sort((a, b) => {
+            if (itemOrder) {
+              let ia = itemOrder.indexOf(a[0]);
+              let ib = itemOrder.indexOf(b[0]);
+              if (ia === -1) ia = 999;
+              if (ib === -1) ib = 999;
+              if (ia !== ib) return ia - ib;
+            }
+            return a[0].localeCompare(b[0]);
+          });
+
+        tbody.innerHTML = items.map(([item, s]) => {
+          const price = latestPrices[item] || npcPrices[item] || NPC[item] || 0;
+          return `<tr>
+        <td onclick="ctrl.setTradeForm('${item}', ${price})" style="cursor:pointer; text-align:left"><b>${item}</b></td>
+        <td contenteditable="true" onblur="ctrl.editStock('${item}', this.textContent)">${s.qty}</td>
+        <td>${s.buyQty} (${utils.formatZeny(s.buyTotal, usePrefix)})</td>
+        <td>${s.sellQty} (${utils.formatZeny(s.sellTotal, usePrefix)})</td>
+        <td style="color:var(--accent1)">${utils.formatZeny(price, usePrefix)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="ctrl.deleteStockItem('${item}')">削</button></td>
+      </tr>`;
+        }).join("");
+      },
+
+      async editStock(item, newVal) {
+        const targetQty = Number(newVal);
+        if (isNaN(targetQty)) return this.refresh();
+
+        let deleted = await DB.getKV("stock_deleted") || [];
+        if (deleted.includes(item)) {
+          deleted = deleted.filter(x => x !== item);
+          await DB.put("kv", { key: "stock_deleted", val: deleted });
+        }
+
+        const drops = await DB.getAll("drop_logs");
+        const trades = await DB.getAll("trade_logs");
+        const currentStocks = await this.calcStocks(drops, trades);
+
+        // 現在の調整値を除外した「素」の計算値を取得
+        const adjs = await DB.getKV("stock_adjs") || {};
+        const currentAdj = Number(adjs[item]) || 0;
+        const currentBaseQty = (currentStocks[item] ? currentStocks[item].qty : 0) - currentAdj;
+
+        adjs[item] = targetQty - currentBaseQty;
+        await DB.put("kv", { key: "stock_adjs", val: adjs });
+        ui.toast("在庫数量を調整しました");
+        this.refresh();
+      },
+
+      async deleteStockItem(item) {
+        if (!confirm(`アイテム「${item}」を在庫一覧から非表示にしますか？（履歴は保持されます）`)) return;
+        const deleted = await DB.getKV("stock_deleted") || [];
+        if (!deleted.includes(item)) deleted.push(item);
+        await DB.put("kv", { key: "stock_deleted", val: deleted });
+        this.refresh();
+      },
+
+      async addInitialStock() {
+        const item = document.getElementById("initStockItem").value.trim();
+        const qty = Number(document.getElementById("initStockQty").value);
+        if (!item || isNaN(qty)) return ui.toast("入力を確認してください");
+        await this.editStock(item, qty); // 既存の調整ロジックを利用
+        document.getElementById("initStockItem").value = "";
+        document.getElementById("initStockQty").value = "";
+        ui.toast("初期在庫を追加しました");
+      },
+
+      renderStockItemList(stocks) {
+        const datalist = document.getElementById("stockItemList");
+        if (!datalist) return;
+        const items = Object.entries(stocks).filter(e => e[1].qty > 0).map(e => e[0]);
+        datalist.innerHTML = items.sort().map(i => `<option value="${i}">`).join("");
+      },
+
+      renderItemMasterList(stocks, npcPrices) {
+        const datalist = document.getElementById("itemMasterList");
+        if (!datalist) return;
+        const items = new Set();
+        Object.keys(stocks).forEach(k => items.add(k.trim()));
+        Object.keys(npcPrices).forEach(k => items.add(k.trim()));
+        Object.keys(NPC).forEach(k => items.add(k.trim()));
+        datalist.innerHTML = Array.from(items).sort().map(i => `<option value="${i}">`).join("");
+      },
+
+      updateTradeList(type) {
+        const input = document.getElementById("tradeItem");
+        const ptContainer = document.getElementById("partySizeContainer");
+        if (!input) return;
+        input.setAttribute("list", type === 'sell' ? "stockItemList" : "itemMasterList");
+        if (ptContainer) ptContainer.style.display = (type === 'sell' ? 'block' : 'none');
+        this.updateTradeMdOptions();
+      },
+
+      async renderCharts(trades, drops, totalAssetsVal) {
+        this.renderProfitChart(trades);
+        this.renderAssetChart(trades, totalAssetsVal);
+        this.renderMdCompareChart(drops, trades);
+        this.renderMonthlyTradeChart(trades);
+      },
+
+      renderProfitChart(trades) {
+        const canvas = document.getElementById("profitChart");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (this.chartProfit) this.chartProfit.destroy();
+        const intervals = [];
+        const base = this.getTue12(Date.now());
+        for (let i = 3; i >= 0; i--) {
+          const start = base - (i * 7 * 24 * 60 * 60 * 1000);
+          const end = start + (7 * 24 * 60 * 60 * 1000);
+          intervals.push({ start, end });
+        }
+        const data = intervals.map(inv => {
+          return trades.filter(t => t.type === 'sell' && t.date >= inv.start && t.date < inv.end)
+            .reduce((sum, t) => sum + (t.total || 0), 0);
+        });
+        const usePrefix = !!document.getElementById("cfgUsePrefix")?.checked;
+        this.chartProfit = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ["3週前", "2週前", "先週", "今週"],
+            datasets: [{ label: '売上', data, backgroundColor: '#6366f1' }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { ticks: { callback: function (value) { return utils.formatZeny(value, usePrefix, 4); } } } },
+            plugins: { tooltip: { callbacks: { label: function (context) { return utils.formatZeny(context.raw, usePrefix, 4) + ' z'; } } } }
+          }
+        });
+      },
+
+      renderAssetChart(trades, totalAssetsVal = 0) {
+        const canvas = document.getElementById("assetChart");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (this.chartAsset) this.chartAsset.destroy();
+        const groups = {};
+        trades.forEach(t => {
+          let key;
+          if (this.assetView === 'daily') {
+            const d = new Date(t.date); d.setHours(0, 0, 0, 0);
+            key = d.getTime();
+          } else if (this.assetView === 'weekly') {
+            key = this.getTue12(t.date);
+          } else {
+            const d = new Date(t.date); d.setDate(1); d.setHours(0, 0, 0, 0);
+            key = d.getTime();
+          }
+          groups[key] = (groups[key] || 0) + (t.type === 'sell' ? t.total : -t.total);
+        });
+        const sortedKeys = Object.keys(groups).sort((a, b) => Number(a) - Number(b));
+        const labels = sortedKeys.map(k => {
+          const d = new Date(Number(k));
+          if (this.assetView === 'daily') return d.toLocaleDateString();
+          if (this.assetView === 'weekly') return d.toLocaleDateString() + "週";
+          return `${d.getFullYear()}/${d.getMonth() + 1}`;
+        });
+        let sum = 0;
+        const temp = sortedKeys.map(k => { sum += groups[k]; return sum; });
+        const diff = totalAssetsVal - sum;
+        const data = temp.map(v => v + diff);
+        const usePrefix = !!document.getElementById("cfgUsePrefix")?.checked;
+        const themeAcc = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+        this.chartAsset = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: '資産推移', data,
+              borderColor: themeAcc,
+              borderWidth: 3,
+              pointRadius: 4,
+              pointBackgroundColor: themeAcc,
+              fill: false, tension: 0.1
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { ticks: { callback: function (value) { return utils.formatZeny(value, usePrefix, 4); } } } },
+            plugins: { tooltip: { callbacks: { label: function (context) { return utils.formatZeny(context.raw, usePrefix, 4) + ' z'; } } } }
+          }
+        });
+      },
+
+      setAssetView(v) { this.assetView = v; this.refresh(); },
+
+      setTradeYear(y) { this.selectedTradeYear = Number(y); this.refresh(); },
+
+      toggleZeroStock(v) { this.showZeroStock = v; this.refresh(); },
+
+      renderMonthlyTradeChart(trades) {
+        const canvas = document.getElementById("tradeMonthlyChart");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (this.chartMonthly) this.chartMonthly.destroy();
+
+        const labels = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
+        const sellData = Array(12).fill(0), buyData = Array(12).fill(0);
+
+        trades.forEach(t => {
+          const d = new Date(t.date);
+          if (d.getFullYear() === this.selectedTradeYear) {
+            const m = d.getMonth();
+            if (t.type === 'sell') sellData[m] += t.total;
+            else if (t.type === 'buy') buyData[m] += t.total;
+          }
+        });
+
+        const usePrefix = !!document.getElementById("cfgUsePrefix")?.checked;
+        this.chartMonthly = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: '販売額', data: sellData, backgroundColor: '#10b981' },
+              { label: '購入額', data: buyData, backgroundColor: '#ef4444' }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { ticks: { callback: function (value) { return utils.formatZeny(value, usePrefix, 4); } } } },
+            plugins: { tooltip: { callbacks: { label: function (context) { return utils.formatZeny(context.raw, usePrefix, 4) + ' z'; } } } }
+          }
+        });
+      },
+
+      async renderMdCompareChart(drops, trades) {
+        const canvas = document.getElementById("mdCompareChart");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (this.chartMd) this.chartMd.destroy();
+        const mdStats = await this.calcMdEfficiency(drops, trades);
+        const sorted = Object.entries(mdStats).sort((a, b) => b[1].avg - a[1].avg).slice(0, 10);
+        const usePrefix = !!document.getElementById("cfgUsePrefix")?.checked;
+        this.chartMd = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: sorted.map(s => s[0]),
+            datasets: [{ label: '平均収益/回', data: sorted.map(s => s[1].avg), backgroundColor: '#6366f1' }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { ticks: { callback: function (value) { return utils.formatZeny(value, usePrefix, 4); } } } },
+            plugins: { tooltip: { callbacks: { label: function (context) { return utils.formatZeny(context.raw, usePrefix, 4) + ' z'; } } } }
+          }
+        });
+      },
+
+      async calcMdEfficiency(drops, trades) {
+        const stats = {};
+        const adjs = await DB.getKV("md_stats_adj") || {};
+        const resets = await DB.getKV("md_resets") || {};
+
+        // 1. 周回回数はドロップログから
+        if (Array.isArray(drops)) {
+          drops.forEach(d => {
+            const resetTime = resets[d.mdName] || 0;
+            if (d.date <= resetTime) return;
+
+            if (!stats[d.mdName]) stats[d.mdName] = { count: 0, total: 0 };
+            stats[d.mdName].count++;
+          });
+        }
+
+        // 2. 収益は取引ログの実績から（紐付けがあるもののみ）
+        if (Array.isArray(trades)) {
+          trades.forEach(t => {
+            const resetTime = resets[t.mdName] || 0;
+            if (t.date <= resetTime) return;
+
+            if (t.type === 'sell' && t.mdName) {
+              if (!stats[t.mdName]) stats[t.mdName] = { count: 0, total: 0 };
+              stats[t.mdName].total += (Number(t.total) || 0);
+            }
+          });
+        }
+
+        // 3. 調整・上書き値
+        Object.entries(adjs).forEach(([name, adj]) => {
+          if (!stats[name]) stats[name] = { count: 0, total: 0 };
+
+          // 収益は履歴から計算するため、調整値は「実施回数」のみを反映
+          // ※ revenueの加算処理を削除し、不一致の元を断つ
+          stats[name].count += (Number(adj.count) || 0);
+        });
+
+        Object.keys(stats).forEach(k => { stats[k].avg = stats[k].count ? stats[k].total / stats[k].count : 0; });
+        return stats;
+      },
+
+      async renderEfficiencyTable(drops, trades, usePrefix) {
+        const tbody = document.getElementById("mdEfficiencyStats");
+        if (!tbody) return;
+        const stats = await this.calcMdEfficiency(drops, trades);
+        tbody.innerHTML = Object.entries(stats).sort((a, b) => b[1].total - a[1].total).map(([name, s]) => `
+      <tr>
+        <td style="text-align:left">${name}</td>
+        <td contenteditable="true" onblur="ctrl.editMdStats('${name}', 'count', this.textContent)">${s.count}</td>
+        <td style="color:var(--accent1)">${utils.formatZeny(s.total, usePrefix)}</td>
+        <td style="color:var(--text)">${utils.formatZeny(s.avg, usePrefix)} z</td>
+        <td><button class="btn btn-danger btn-sm" onclick="ctrl.deleteMdStat('${name}')">削</button></td>
+      </tr>
+    `).join("");
+      },
+
+      async editMdStats(name, key, val) {
+        if (key === 'revenue') return;
+        const num = Number(val.replace(/,/g, ''));
+        if (isNaN(num)) return;
+
+        const resets = await DB.getKV("md_resets") || {};
+        const resetTime = resets[name] || 0;
+
+        // 現在の履歴上の個数（リセット以降）を取得
+        const drops = await DB.getAll("drop_logs");
+        const historyCount = drops.filter(d => d.mdName === name && d.date > resetTime).length;
+
+        const adjs = await DB.getKV("md_stats_adj") || {};
+        if (!adjs[name]) adjs[name] = { count: 0 };
+
+        // 調整値 = 目標値 - 履歴上の数
+        adjs[name].count = num - historyCount;
+        await DB.put("kv", { key: "md_stats_adj", val: adjs });
+        this.refresh();
+      },
+
+      async deleteMdStat(name) {
+        if (!confirm(`MD「${name}」の統計をリセットしますか？\n（これまでの記録は集計から除外され、新しく記録されるまで非表示になります）`)) return;
+
+        // リセット日時を記録（これ以前のログを無視する）
+        const resets = await DB.getKV("md_resets") || {};
+        resets[name] = Date.now();
+        await DB.put("kv", { key: "md_resets", val: resets });
+
+        // 手動補正値もリセット
+        const adjs = await DB.getKV("md_stats_adj") || {};
+        if (adjs[name]) delete adjs[name];
+        await DB.put("kv", { key: "md_stats_adj", val: adjs });
+
+        this.refresh();
+      },
+
+      async renderDropFields(mdName) {
+        const mds = await DB.getAll("mds");
+        const md = mds.find(m => m.name === mdName);
+        const container = document.getElementById("dropFields");
+        if (!md || !md.items) return container.innerHTML = "ドロップ設定がありません";
+        const itemOrder = await DB.getKV("md_item_order") || this.getInitialItemOrder(mds);
+        const items = Array.isArray(md.items) ? md.items : Object.keys(md.items);
+        items.sort((a, b) => {
+          let ia = itemOrder.indexOf(a);
+          let ib = itemOrder.indexOf(b);
+          if (ia === -1) ia = 999;
+          if (ib === -1) ib = 999;
+          return ia - ib;
+        });
+        container.innerHTML = items.map(item => {
+          const defQty = (!Array.isArray(md.items) && md.items[item]) || 0;
+          return `
+      <div class="drop-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+        <span>${item}</span>
+        <input type="number" class="drop-input" data-item="${item}" value="${defQty}" min="0" style="width:70px" onfocus="setTimeout(() => this.select(), 10)">
+      </div>
+    `;
+        }).join("");
+      },
+
+      async saveDropLog() {
+        const panel = document.getElementById("dropInputPanel");
+        const mdName = panel.dataset.md;
+        const charName = panel.dataset.char;
+        const logId = Number(panel.dataset.logId);
+        const items = {};
+        document.querySelectorAll(".drop-input").forEach(el => {
+          const q = Number(el.value);
+          const name = (el.dataset.item || "").trim();
+          if (q > 0 && name) items[name] = q;
+        });
+        if (Object.keys(items).length === 0) return ui.closeDropPanel();
+
+        // toggle時に作成されたログを更新
+        const log = { id: logId, mdName, charName, items, date: Date.now() };
+        await DB.put("drop_logs", log);
+
+        let mdDeleted = await DB.getKV("md_stats_deleted") || [];
+        if (mdDeleted.includes(mdName)) {
+          mdDeleted = mdDeleted.filter(x => x !== mdName);
+          await DB.put("kv", { key: "md_stats_deleted", val: mdDeleted });
+        }
+
+        let deleted = await DB.getKV("stock_deleted") || [];
+        let deletedChanged = false;
+        Object.keys(items).forEach(item => {
+          if (deleted.includes(item)) {
+            deleted = deleted.filter(x => x !== item);
+            deletedChanged = true;
+          }
+        });
+        if (deletedChanged) await DB.put("kv", { key: "stock_deleted", val: deleted });
+
+        // NPC価格設定を取得
+        const npcPrices = await DB.getKV("npc_prices") || NPC;
+        const chars = await DB.getAll("chars");
+        const char = chars.find(c => c.name === charName);
+
+        let totalRevenue = 0;
+        for (const [item, qty] of Object.entries(items)) {
+          const price = npcPrices[item];
+          if (price && price > 0) {
+            const total = qty * price;
+            await DB.put("trade_logs", { charName, server: char.server || "All", type: 'sell', item, qty, price, total, date: log.date, auto: true, mdName });
+          }
+        }
+
+        ui.toast("ドロップを記録しました");
+        ui.closeDropPanel();
+        this.refresh();
+      },
+
+      async saveTradeLog() {
+        const type = document.getElementById("tradeType").value;
+        const item = document.getElementById("tradeItem").value.trim();
+        const qty = Number(document.getElementById("tradeQty").value);
+        const priceStr = document.getElementById("tradePrice").value;
+        const price = utils.parseZeny(priceStr);
+        if (!item || qty <= 0) return ui.toast("入力を確認してください");
+
+        let deleted = await DB.getKV("stock_deleted") || [];
+        if (deleted.includes(item)) {
+          deleted = deleted.filter(x => x !== item);
+          await DB.put("kv", { key: "stock_deleted", val: deleted });
+        }
+
+        // サーバー選択は不要になったため "All" 固定（集計ロジック上は影響なし）
+        await DB.put("trade_logs", { charName: "手動入力", server: "All", type, item, qty, price, total: qty * price, date: Date.now() });
+        ui.toast("取引を保存しました");
+        this.refresh();
+      }
+    });
+
+    function extend(target, source) {
+      for (const key in source) { target[key] = source[key]; }
+    }
+
+    /* logic_3.js: キャラ・マスタ・MVPc・履歴 */
+
+    extend(ctrl, {
+      isMasterTranspose: false,
+
+      // --- キャラクターマスタ ---
+      async renderCharList(chars, globalBaseDate, config) {
+        const head = document.getElementById("charHead");
+        const body = document.getElementById("charBody");
+        const dateDisp = document.getElementById("globalBaseDateDisp");
+        if (!body || !head) return;
+
+        if (dateDisp) dateDisp.textContent = globalBaseDate ? new Date(globalBaseDate).toLocaleString() : "未設定";
+
+        const isMoney = !!config.moneyMode;
+        let h = `<tr><th>名前</th><th>鯖</th><th>Lv</th><th>職</th>`;
+        if (isMoney) h += `<th>基準所持金</th>`;
+        h += `<th>操作</th></tr>`;
+        head.innerHTML = h;
+
+        chars.sort((a, b) => (a.order || 0) - (b.order || 0));
+        body.innerHTML = chars.map(c => `
+      <tr class="draggable" draggable="true" data-id="${c.id}" ondragstart="ctrl.onDragStartChar(event)" ondragover="ctrl.onDragOver(event)" ondrop="ctrl.onDropCharMain(event)">
+        <td contenteditable="true" onblur="ctrl.editChar(${c.id}, 'name', this.textContent)">${c.name}</td>
+        <td contenteditable="true" onblur="ctrl.editChar(${c.id}, 'server', this.textContent)">${c.server || ""}</td>
+        <td contenteditable="true" onblur="ctrl.editChar(${c.id}, 'lv', this.textContent)">${c.lv}</td>
+        <td contenteditable="true" onblur="ctrl.editChar(${c.id}, 'job', this.textContent)">${c.job}</td>
+        ${isMoney ? `<td contenteditable="true" onblur="ctrl.editChar(${c.id}, 'money', this.textContent)">${utils.formatZeny(c.money || 0, false)}</td>` : ""}
+        <td><button class="btn btn-danger btn-sm" onclick="ctrl.delData('chars', ${c.id})">削</button></td>
+      </tr>
+    `).join("");
+
+        // 取引入力用のサーバーセレクト更新
+        const tradeSel = document.getElementById("tradeServerSel");
+        if (tradeSel) {
+          const cur = tradeSel.value;
+          const serverSet = new Set();
+          chars.forEach(c => { if (c.server) serverSet.add(c.server); });
+          const servers = Array.from(serverSet).sort();
+          tradeSel.innerHTML = servers.map(s => `<option value="${s}">${s}</option>`).join("");
+          if (cur) tradeSel.value = cur;
+        }
+      },
+
+      async editChar(id, key, val) {
+        const chars = await DB.getAll("chars");
+        const c = chars.find(x => x.id === id);
+        if (!c) return;
+        if (key === 'money') c[key] = utils.parseZeny(val);
+        else if (key === 'lv') c[key] = Number(val.replace(/,/g, ''));
+        else c[key] = val;
+        await DB.put("chars", c);
+        this.refresh();
+      },
+
+      async addChar() {
+        const c = {
+          name: document.getElementById("cName").value,
+          server: document.getElementById("cServer").value,
+          lv: Number(document.getElementById("cLv").value) || 0,
+          job: document.getElementById("cJob").value,
+          money: 0, order: 99
+        };
+        if (!c.name) return;
+        await DB.put("chars", c);
+        document.getElementById("cName").value = "";
+        this.refresh();
+      },
+
+      async setAllBaseMoney() {
+        if (!confirm("現在の計算上の資産状態を『基準点』として保存します。よろしいですか？")) return;
+        await DB.put("kv", { key: "globalBaseDate", val: Date.now() });
+        ui.toast("基準点を更新しました");
+        this.refresh();
+      },
+
+      // --- MDマスタ ---
+      async renderMdMaster(mds) {
+        const head = document.getElementById("matrixHead");
+        const body = document.getElementById("matrixBody");
+        const config = await DB.getKV("config") || {};
+        if (!head || !body) return;
+
+        const itemOrder = await DB.getKV("md_item_order") || this.getInitialItemOrder(mds);
+        mds.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        const isMoney = !!config.moneyMode;
+
+        if (!this.isMasterTranspose) {
+          head.innerHTML = `<tr>
+        <th class="sticky-col">MD設定 (挿入移動可)</th>
+        ${isMoney ? itemOrder.map(item => `
+          <th class="draggable" draggable="true" data-item="${item}" ondragstart="ctrl.onDragStartItem(event)" ondragover="ctrl.onDragOver(event)" ondrop="ctrl.onDropItem(event)">
+            <div style="font-size:10px">${item}</div>
+            <button class="btn btn-danger btn-sm" style="padding:1px 3px; font-size:8px" onclick="ctrl.delItemMaster('${item}')">×</button>
+          </th>`).join("") : ""}
+        <th>操作</th>
+      </tr>`;
+          body.innerHTML = mds.map(m => `
+        <tr class="draggable" draggable="true" data-id="${m.id}" ondragstart="ctrl.onDragStartMdMain(event)" ondragover="ctrl.onDragOver(event)" ondrop="ctrl.onDropMdMain(event)">
+          <td class="sticky-col" style="text-align:left">
+            <div contenteditable="true" onblur="ctrl.editMd(${m.id}, 'name', this.textContent)" style="font-weight:700">${m.name}</div>
+            <div style="display:flex; gap:5px; margin-top:4px; align-items:center;">
+              <select onchange="ctrl.editMd(${m.id}, 'ctType', this.value)" style="font-size:10px; padding:2px" title="再生成時間(CT)">
+                <option value="daily" ${m.ctType === 'daily' ? 'selected' : ''}>翌日</option>
+                <option value="3days" ${m.ctType === '3days' ? 'selected' : ''}>3日</option>
+                <option value="weeklyTue12" ${m.ctType === 'weeklyTue12' ? 'selected' : ''}>週間</option>
+              </select>
+              <span style="font-size:9px; opacity:0.6">MVP:</span>
+              <input type="number" value="${m.mvp}" onfocus="this.select()" onclick="this.select()" onblur="ctrl.editMd(${m.id}, 'mvp', this.value)" style="width:45px; font-size:11px; padding:2px; text-align:center;" title="チェック時に加算されるMVP討伐数">
+            </div>
+          </td>
+          ${isMoney ? itemOrder.map(item => {
+            const isSet = m.items && (Array.isArray(m.items) ? m.items.includes(item) : (item in m.items));
+            const qty = isSet ? (Array.isArray(m.items) ? 1 : m.items[item]) : 0;
+            return `<td>
+              <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                <span onclick="ctrl.toggleMdItem(${m.id}, '${item}')" style="cursor:pointer; font-size:1.2rem; color:${isSet ? 'var(--text)' : '#444'}">${isSet ? '★' : '☆'}</span>
+                <input type="number" value="${qty}" onfocus="this.select()" onclick="this.select()" onblur="ctrl.editMdItemQty(${m.id}, '${item}', this.value)" style="width:45px; font-size:11px; padding:2px; text-align:center; ${isSet ? '' : 'visibility:hidden'}" title="デフォルトのドロップ個数">
+              </div>
+            </td>`;
+          }).join("") : ""}
+          <td><button class="btn btn-danger btn-sm" onclick="ctrl.delData('mds', ${m.id})">削</button></td>
+        </tr>
+      `).join("");
+        } else {
+          head.innerHTML = `<tr><th class="sticky-col">アイテム \\ MD設定</th>` + mds.map(m => `
+        <th class="draggable" draggable="true" data-id="${m.id}" ondragstart="ctrl.onDragStartMdMain(event)" ondragover="ctrl.onDragOver(event)" ondrop="ctrl.onDropMdMain(event)">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div contenteditable="true" onblur="ctrl.editMd(${m.id}, 'name', this.textContent)" style="font-size:11px; font-weight:700; flex:1; text-align:left;">${m.name}</div>
+            <button class="btn btn-danger btn-sm" style="padding:1px 3px; font-size:8px; margin-left:4px;" onclick="ctrl.delData('mds', ${m.id})">×</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; margin-top:4px; align-items:center;">
+            <select onchange="ctrl.editMd(${m.id}, 'ctType', this.value)" style="font-size:9px; padding:1px">
+              <option value="daily" ${m.ctType === 'daily' ? 'selected' : ''}>翌日</option>
+              <option value="3days" ${m.ctType === '3days' ? 'selected' : ''}>3日</option>
+              <option value="weeklyTue12" ${m.ctType === 'weeklyTue12' ? 'selected' : ''}>週間</option>
+            </select>
+            <div style="font-size:9px; display:flex; align-items:center; gap:2px;">
+              <span>MVP:</span>
+              <input type="number" value="${m.mvp}" onfocus="this.select()" onclick="this.select()" onblur="ctrl.editMd(${m.id}, 'mvp', this.value)" style="width:45px; font-size:11px; padding:2px; text-align:center;">
+            </div>
+          </div>
+        </th>`).join("") + `</tr>`;
+          body.innerHTML = isMoney ? itemOrder.map(item => `
+        <tr class="draggable" draggable="true" data-item="${item}" ondragstart="ctrl.onDragStartItem(event)" ondragover="ctrl.onDragOver(event)" ondrop="ctrl.onDropItem(event)">
+          <td class="sticky-col">
+            <div style="display:flex; justify-content:space-between; align-items:center; min-width:180px;">
+              <b>${item}</b>
+              <button class="btn btn-danger btn-sm" onclick="ctrl.delItemMaster('${item}')">削</button>
+            </div>
+          </td>
+          ${mds.map(m => {
+            const isSet = m.items && (Array.isArray(m.items) ? m.items.includes(item) : (item in m.items));
+            const qty = isSet ? (Array.isArray(m.items) ? 1 : m.items[item]) : 0;
+            return `<td>
+              <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                <span onclick="ctrl.toggleMdItem(${m.id}, '${item}')" style="cursor:pointer; font-size:1.2rem; color:${isSet ? 'var(--text)' : '#444'}">${isSet ? '★' : '☆'}</span>
+                <input type="number" value="${qty}" onfocus="this.select()" onclick="this.select()" onblur="ctrl.editMdItemQty(${m.id}, '${item}', this.value)" style="width:45px; font-size:11px; padding:2px; text-align:center; ${isSet ? '' : 'visibility:hidden'}" title="デフォルトのドロップ個数">
+              </div>
+            </td>`;
+          }).join("")}
+        </tr>
+      `).join("") : "<tr><td colspan='99'>金策分析モードがOFFのため表示されません</td></tr>";
+        }
+      },
+
+      getInitialItemOrder(mds) {
+        const s = new Set();
+        mds.forEach(m => {
+          if (!m.items) return;
+          const keys = Array.isArray(m.items) ? m.items : Object.keys(m.items);
+          keys.forEach(i => s.add(i));
+        });
+        return Array.from(s);
+      },
+
+      async toggleMdItem(mdId, item) {
+        const mds = await DB.getAll("mds");
+        const m = mds.find(x => x.id === mdId);
+        if (!m) return;
+        // 互換性維持
+        if (Array.isArray(m.items)) {
+          const obj = {}; m.items.forEach(it => obj[it] = 1);
+          m.items = obj;
+        }
+        if (!m.items) m.items = {};
+        if (item in m.items) delete m.items[item]; else m.items[item] = 0;
+        await DB.put("mds", m);
+        this.refresh();
+      },
+
+      async editMdItemQty(mdId, item, qty) {
+        const mds = await DB.getAll("mds");
+        const m = mds.find(x => x.id === mdId);
+        if (!m) return;
+        if (Array.isArray(m.items)) {
+          const obj = {}; m.items.forEach(it => obj[it] = 1);
+          m.items = obj;
+        }
+        const n = Number(qty);
+        if (!m.items) m.items = {};
+        const newVal = n >= 0 ? n : 0;
+        if (m.items[item] === newVal) return;
+        m.items[item] = newVal;
+        await DB.put("mds", m);
+        // TAB移動時の再描画によるフォーカス喪失を防ぐため refresh を行わない
+      },
+
+      async editMd(id, key, val) {
+        const mds = await DB.getAll("mds");
+        const m = mds.find(x => x.id === id);
+        if (!m) return;
+        if (key === 'mvp') {
+          const n = Number(val) || 0;
+          if (m.mvp === n) return;
+          m.mvp = n;
+          await DB.put("mds", m);
+          // TAB移動時の再描画を防ぐため refresh を行わない
+        } else {
+          if (m[key] === val) return;
+          m[key] = val;
+          await DB.put("mds", m);
+          this.refresh();
+        }
+      },
+
+      async addSingleMd() {
+        const name = document.getElementById("newMdName").value;
+        const ctType = document.getElementById("newMdCt").value;
+        const mvp = Number(document.getElementById("newMdMvp").value);
+        if (!name) return;
+        await DB.put("mds", { name, ctType, mvp, items: {}, order: 99 });
+        this.refresh();
+      },
+
+      async loadDefaultMds() {
+        if (!confirm("MDとドロップアイテムの設定をデフォルト構成で上書き・追加しますか？\n（既存の同一名のMDは更新され、アイテムリストも追加されます）")) return;
+        const currentMds = await DB.getAll("mds");
+        let itemOrder = await DB.getKV("md_item_order") || [];
+        const itemSet = new Set(itemOrder);
+
+        for (const def of DEFAULT_MDS) {
+          let m = currentMds.find(x => x.name === def.name);
+          if (m) {
+            m.ctType = def.ctType;
+            m.mvp = def.mvp;
+            m.items = { ...def.items };
+            if (def.order !== undefined) m.order = def.order;
+            await DB.put("mds", m);
+          } else {
+            await DB.put("mds", { ...def });
+          }
+          const keys = Array.isArray(def.items) ? def.items : Object.keys(def.items || {});
+          keys.forEach(it => itemSet.add(it));
+        }
+
+        const allMds = await DB.getAll("mds");
+        allMds.sort((a, b) => (a.order || 0) - (b.order || 0));
+        for (let i = 0; i < allMds.length; i++) {
+          allMds[i].order = i;
+          await DB.put("mds", allMds[i]);
+        }
+
+        await DB.put("kv", { key: "md_item_order", val: Array.from(itemSet) });
+        ui.toast("デフォルト設定を適用しました");
+        this.refresh();
+      },
+
+      async addItemMaster() {
+        const item = document.getElementById("newGlobalItem").value.trim();
+
+        if (!item) return;
+        const itemOrder = await DB.getKV("md_item_order") || [];
+        if (!itemOrder.includes(item)) {
+          itemOrder.push(item);
+          await DB.put("kv", { key: "md_item_order", val: itemOrder });
+        }
+        document.getElementById("newGlobalItem").value = "";
+        ui.toast("アイテムを登録しました");
+        this.refresh();
+      },
+
+      async delItemMaster(item) {
+        if (!confirm(`アイテム「${item}」をマスタから削除しますか？`)) return;
+        const itemOrder = await DB.getKV("md_item_order") || [];
+        const idx = itemOrder.indexOf(item);
+        if (idx > -1) itemOrder.splice(idx, 1);
+        await DB.put("kv", { key: "md_item_order", val: itemOrder });
+        const mds = await DB.getAll("mds");
+        for (const m of mds) {
+          if (m.items) {
+            if (Array.isArray(m.items)) {
+              if (m.items.includes(item)) {
+                m.items = m.items.filter(i => i !== item);
+                await DB.put("mds", m);
+              }
+            } else if (m.items[item]) {
+              delete m.items[item];
+              await DB.put("mds", m);
+            }
+          }
+        }
+        this.refresh();
+      },
+
+      // --- NPC価格マスタ ---
+      async renderNpcMaster() {
+        const body = document.getElementById("npcMasterBody");
+        if (!body) return;
+        const prices = await DB.getKV("npc_prices") || NPC;
+        const sorted = Object.entries(prices).sort((a, b) => a[0].localeCompare(b[0]));
+        body.innerHTML = sorted.map(([item, price]) => `
+          <tr>
+            <td style="text-align:left"><b>${item}</b></td>
+            <td contenteditable="true" onblur="ctrl.editNpcPrice('${item}', this.textContent)">${utils.formatZeny(price, false)}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="ctrl.delNpcPrice('${item}')">削</button></td>
+          </tr>
+        `).join("");
+      },
+
+      async editNpcPrice(item, val) {
+        const prices = await DB.getKV("npc_prices") || { ...NPC };
+        prices[item] = utils.parseZeny(val);
+        await DB.put("kv", { key: "npc_prices", val: prices });
+        this.refresh();
+      },
+
+      async addNpcPrice() {
+        const item = document.getElementById("npcItemName").value.trim();
+        const priceStr = document.getElementById("npcItemPrice").value;
+        if (!item) return;
+        const prices = await DB.getKV("npc_prices") || { ...NPC };
+        prices[item] = utils.parseZeny(priceStr);
+        await DB.put("kv", { key: "npc_prices", val: prices });
+        document.getElementById("npcItemName").value = "";
+        document.getElementById("npcItemPrice").value = "";
+        this.refresh();
+      },
+
+      async delNpcPrice(item) {
+        if (!confirm(`アイテム「${item}」をNPC価格マスタから削除しますか？\n（以降、このアイテムは自動売却されず在庫に残ります）`)) return;
+        const prices = await DB.getKV("npc_prices") || { ...NPC };
+        delete prices[item];
+        await DB.put("kv", { key: "npc_prices", val: prices });
+        this.refresh();
+      },
+
+      async saveTradeLog() {
+        const type = document.getElementById("tradeType").value;
+        const item = document.getElementById("tradeItem").value.trim();
+        const mdName = document.getElementById("tradeMd").value;
+        const qty = Number(document.getElementById("tradeQty").value);
+        const inputPrice = utils.parseZeny(document.getElementById("tradePrice").value);
+        const partySize = Number(document.getElementById("tradePartySize").value) || 1;
+
+        if (!item || isNaN(qty) || isNaN(inputPrice)) return ui.toast("入力を確認してください");
+
+        // 販売時のみパーティー人数で除算（小数点以下切り捨て）
+        const price = (type === 'sell') ? Math.floor(inputPrice / partySize) : inputPrice;
+
+        const chars = await DB.getAll("chars");
+        const char = chars[0] || { name: "不明", server: "All" };
+        const total = qty * price;
+
+        await DB.put("trade_logs", {
+          charName: char.name,
+          server: char.server,
+          type,
+          item,
+          qty,
+          price,
+          total,
+          date: Date.now(),
+          mdName,
+          partySize: (type === 'sell' ? partySize : 1) // 履歴にも保持
+        });
+
+        document.getElementById("tradeItem").value = "";
+        document.getElementById("tradePrice").value = "";
+        document.getElementById("tradePartySize").value = "1";
+        this.refresh();
+      },
+
+      async updateTradeMdOptions() {
+        const item = document.getElementById("tradeItem").value.trim();
+        const select = document.getElementById("tradeMd");
+        const typeInput = document.getElementById("tradeType");
+        const qtyInput = document.getElementById("tradeQty");
+        if (!select) return;
+        const currentMd = select.value;
+        const mds = await DB.getAll("mds");
+        let filtered = mds;
+        if (item) {
+          filtered = mds.filter(m => {
+            if (!m.items) return false;
+            const keys = Array.isArray(m.items) ? m.items : Object.keys(m.items);
+            return keys.includes(item);
+          });
+        }
+        select.innerHTML = `<option value="">紐付けMD (${item && filtered.length === 0 ? '該当なし' : 'なし/その他'})</option>` +
+          filtered.map(m => `<option value="${m.name}">${m.name}</option>`).join("");
+
+        if (item && filtered.length === 1) {
+          select.value = filtered[0].name;
+        } else if (currentMd && (!item || filtered.some(m => m.name === currentMd))) {
+          select.value = currentMd;
+        }
+
+        if (item && typeInput && typeInput.value === 'sell' && qtyInput) {
+          const drops = await DB.getAll("drop_logs");
+          const trades = await DB.getAll("trade_logs");
+          const stocks = await this.calcStocks(drops, trades);
+          if (stocks[item] && stocks[item].qty > 0) {
+            qtyInput.value = stocks[item].qty;
+          }
+        }
+      },
+
+      async renderTradeUI(config) {
+        const trades = await DB.getAll("trade_logs");
+        const body = document.getElementById("tradeLogFull");
+        if (!body) return;
+        const mds = await DB.getAll("mds");
+        this.updateTradeMdOptions();
+
+        body.innerHTML = trades.sort((a, b) => b.date - a.date).slice(0, 100).map(t => {
+          const itemMdOptions = mds.filter(m => {
+            if (!m.items) return false;
+            const keys = Array.isArray(m.items) ? m.items : Object.keys(m.items);
+            return keys.includes(t.item);
+          });
+
+          return `
+      <tr>
+        <td style="font-size:9px">${new Date(t.date).toLocaleString()}</td>
+        <td style="color:${t.type === 'sell' ? '#4ade80' : '#f87171'}">${t.type === 'sell' ? '販売' : '購入'}</td>
+        <td contenteditable="true" onblur="ctrl.editLog(${t.id}, 'item', this.textContent)">${t.item}</td>
+        <td>
+          <select onchange="ctrl.editLog(${t.id}, 'mdName', this.value)" style="background:transparent; color:inherit; border:none; width:100%; font-size:11px">
+            <option value="">-</option>
+            ${itemMdOptions.map(m => `<option value="${m.name}" ${t.mdName === m.name ? 'selected' : ''}>${m.name}</option>`).join("")}
+            ${t.mdName && !itemMdOptions.some(m => m.name === t.mdName) ? `<option value="${t.mdName}" selected>${t.mdName}</option>` : ''}
+          </select>
+        </td>
+        <td contenteditable="true" onblur="ctrl.editLog(${t.id}, 'qty', this.textContent)">${t.qty}</td>
+        <td contenteditable="true" onblur="ctrl.editLog(${t.id}, 'price', this.textContent)">${utils.formatZeny(t.price, false)}</td>
+        <td>${utils.formatZeny(t.total, config.usePrefix)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="ctrl.delData('trade_logs', ${t.id})">削</button></td>
+      </tr>
+    `;
+        }).join("");
+      },
+
+      toggleTransposeMaster() { this.isMasterTranspose = !this.isMasterTranspose; this.refresh(); },
+
+      async onDragStartItem(e) { e.dataTransfer.setData("itemName", e.currentTarget.dataset.item); },
+      async onDropItem(e) {
+        const name = e.dataTransfer.getData("itemName");
+        const targetEl = e.currentTarget.closest("[data-item]");
+        if (!name || !targetEl) return;
+        const targetName = targetEl.dataset.item;
+        if (name === targetName) return;
+        let order = await DB.getKV("md_item_order") || [];
+        const idx1 = order.indexOf(name), idx2 = order.indexOf(targetName);
+        order.splice(idx1, 1);
+        const newIdx = order.indexOf(targetName);
+        order.splice(newIdx, 0, name);
+        await DB.put("kv", { key: "md_item_order", val: order });
+        this.refresh();
+      },
+
+      // --- MVPc (MVP統計) ---
+      async renderMvpStats(config) {
+        const logs = await DB.getAll("mvp_logs");
+        const kills = await DB.getKV("globalKills") || 0;
+        const killEl = document.getElementById("globalKills");
+        const usePrefix = !!config.usePrefix;
+        if (killEl) killEl.textContent = kills.toLocaleString();
+
+        let totalCards = logs.length;
+        let totalKills = logs.reduce((a, b) => a + (b.kills || 0), 0) + kills;
+        let totalZeny = logs.reduce((a, b) => a + (b.price || 0), 0);
+
+        const statsBody = document.getElementById("lifetimeStats");
+        if (statsBody) {
+          statsBody.innerHTML = `<tr>
+        <td><b>${totalCards}</b> 枚</td>
+        <td><b>${totalKills.toLocaleString()}</b> 回</td>
+        <td><b>${utils.formatZeny(totalZeny, usePrefix, 4)}</b> z</td>
+        <td><b>${totalCards ? (totalKills / totalCards).toFixed(0) : 0}</b> 回</td>
+        <td><b>${totalCards ? utils.formatZeny(totalZeny / totalCards, usePrefix, 4) : 0}</b> z</td>
+      </tr>`;
+        }
+
+        this.renderAnnualMvp(logs, usePrefix);
+        this.renderMvpHist(logs, usePrefix);
+      },
+
+      renderAnnualMvp(logs, usePrefix) {
+        const container = document.getElementById("annualStats");
+        if (!container) return;
+        const yearMap = {};
+        logs.forEach(l => {
+          const y = new Date(l.date).getFullYear();
+          if (!yearMap[y]) yearMap[y] = { count: 0, zeny: 0, kills: 0 };
+          yearMap[y].count++;
+          yearMap[y].zeny += (l.price || 0);
+          yearMap[y].kills += (l.kills || 0);
+        });
+
+        const years = Object.keys(yearMap).sort((a, b) => b - a);
+        container.innerHTML = years.map(y => `
+      <div class="card" style="padding:15px; text-align:center; min-width:120px; flex: 1;">
+        <div class="stat-label" style="font-size:12px; margin-bottom:8px;">${y}年</div>
+        <div class="stat-val" style="font-size:1.6rem; color:var(--accent1);">${yearMap[y].count} 枚</div>
+        <div style="font-size:11px; opacity:0.8; margin-top:5px;">${yearMap[y].kills.toLocaleString()} 討伐</div>
+        <div style="font-size:11px; color:var(--accent1); font-weight:700; margin-top:2px;">${utils.formatZeny(yearMap[y].zeny, usePrefix, 4)} z</div>
+      </div>
+    `).join("");
+      },
+
+      renderMvpHist(logs, usePrefix) {
+        const tbody = document.getElementById("histBody");
+        if (!tbody) return;
+        tbody.innerHTML = logs.sort((a, b) => b.date - a.date).map(l => `
+      <tr>
+        <td contenteditable="true" onblur="ctrl.editMvp(${l.id}, 'date', this.textContent)">${new Date(l.date).toLocaleDateString()}</td>
+        <td contenteditable="true" onblur="ctrl.editMvp(${l.id}, 'name', this.textContent)">${l.name}</td>
+        <td contenteditable="true" onblur="ctrl.editMvp(${l.id}, 'kills', this.textContent)">${(l.kills || 0).toLocaleString()}</td>
+        <td contenteditable="true" onblur="ctrl.editMvp(${l.id}, 'price', this.textContent)">${utils.formatZeny(l.price || 0, false)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="ctrl.delData('mvp_logs', ${l.id})">削</button></td>
+      </tr>
+    `).join("");
+      },
+
+      async editMvp(id, key, val) {
+        const logs = await DB.getAll("mvp_logs");
+        const l = logs.find(x => x.id === id);
+        if (!l) return;
+        if (key === 'kills') l[key] = Number(val.replace(/,/g, ''));
+        else if (key === 'price') l[key] = utils.parseZeny(val);
+        else if (key === 'date') l[key] = new Date(val).getTime() || l[key];
+        else l[key] = val;
+        await DB.put("mvp_logs", l);
+        this.refresh();
+      },
+
+      async addKills(val) {
+        let kills = await DB.getKV("globalKills") || 0;
+        kills += val;
+        if (kills < 0) kills = 0;
+        await DB.put("kv", { key: "globalKills", val: kills });
+        this.refresh();
+      },
+
+      async setCustomKills() {
+        const current = await DB.getKV("globalKills") || 0;
+        const input = prompt("現在の累計討伐数を入力してください", current);
+        if (input === null || input.trim() === "") return;
+        const num = Number(input.replace(/,/g, ''));
+        if (isNaN(num) || num < 0) {
+          ui.toast("無効な数値です");
+          return;
+        }
+        await DB.put("kv", { key: "globalKills", val: num });
+        this.refresh();
+      },
+
+      async addEmptyHist() {
+        const log = { date: Date.now(), name: "新しいカード", kills: 1, price: 0 };
+        await DB.put("mvp_logs", log);
+        this.refresh();
+      },
+
+      async addNowHist() {
+        const name = prompt("獲得したカード名を入力してください", "MVPカード");
+        if (!name) return;
+        const kills = await DB.getKV("globalKills") || 0;
+        const log = { date: Date.now(), name, kills, price: 0 };
+        await DB.put("mvp_logs", log);
+        await DB.put("kv", { key: "globalKills", val: 0 });
+        ui.toast(name + " を記録しました！討伐数をリセットしました。");
+        this.refresh();
+      },
+
+      async handlePaste(e) {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        if (!text) return;
+        const rows = text.trim().split(/\r?\n/);
+        for (const row of rows) {
+          const cols = row.split('\t');
+          if (cols.length >= 2) {
+            let dateVal = Date.now();
+            let name, kills = 0, price = 0;
+
+            if (cols.length >= 4) {
+              const d = new Date(cols[0]);
+              if (!isNaN(d.getTime())) dateVal = d.getTime();
+              name = cols[1];
+              kills = Number(String(cols[2] || "").replace(/,/g, '')) || 0;
+              price = utils.parseZeny(cols[3] || "0");
+            } else if (cols.length === 3) {
+              name = cols[0];
+              kills = Number(String(cols[1] || "").replace(/,/g, '')) || 0;
+              price = utils.parseZeny(cols[2] || "0");
+            } else if (cols.length === 2) {
+              name = cols[0];
+              kills = Number(String(cols[1] || "").replace(/,/g, '')) || 0;
+            }
+
+            if (name && name.trim()) {
+              await DB.put("mvp_logs", { date: dateVal, name: name.trim(), kills, price });
+            }
+          }
+        }
+        ui.toast("MVP履歴を貼り付けました");
+        this.refresh();
+      },
+
+      async handlePasteChar(e) {
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        if (!text) return;
+
+        // 単一セルの編集（タブや改行を含まない貼り付け）はブラウザの標準動作を許可する
+        if (e.target.isContentEditable && !text.includes('\t') && !text.trim().includes('\n')) {
+          return;
+        }
+
+        e.preventDefault();
+        const rows = text.trim().split(/\r?\n/);
+        for (const row of rows) {
+          const cols = row.split('\t');
+          if (cols.length >= 2) {
+            let order = 99, name = "", lv = 0, job = "", server = "", money = 0;
+
+            let lvIndex = -1;
+            for (let i = 1; i < cols.length; i++) {
+              const num = Number(cols[i]);
+              if (!isNaN(num) && num > 0 && num <= 300 && String(num) === cols[i].trim()) {
+                lvIndex = i;
+                break;
+              }
+            }
+
+            if (lvIndex !== -1) {
+              if (lvIndex === 2 && cols.length >= 5 && isNaN(Number(cols[0]))) {
+                name = cols[0];
+                server = cols[1];
+                lv = Number(cols[2]);
+                job = cols[3];
+                money = utils.parseZeny(cols[4] || "0");
+              } else if (lvIndex === 1 && cols.length >= 4) {
+                name = cols[0];
+                lv = Number(cols[1]);
+                job = cols[2];
+                server = cols[3] || "";
+                money = utils.parseZeny(cols[4] || "0");
+              } else if (lvIndex === 2 && !isNaN(Number(cols[0]))) {
+                order = Number(cols[0]);
+                name = cols[1];
+                lv = Number(cols[2]);
+                job = cols[3];
+                server = cols[4] || "";
+                money = utils.parseZeny(cols[5] || "0");
+              } else {
+                name = cols[0];
+                lv = Number(cols[lvIndex]);
+              }
+            } else {
+              name = cols[0];
+            }
+
+            if (name && name.trim()) {
+              await DB.put("chars", { name: name.trim(), lv, job, server, money, order });
+            }
+          }
+        }
+        ui.toast("キャラクターを貼り付けました");
+        this.refresh();
+      },
+
+
+
+      async editLog(id, key, val) {
+        const logs = await DB.getAll("trade_logs");
+        const l = logs.find(x => x.id === id);
+        if (!l) return;
+        if (key === 'qty') { l[key] = Number(val.replace(/,/g, '')); l.total = l.qty * l.price; }
+        else if (key === 'price') { l[key] = utils.parseZeny(val); l.total = l.qty * l.price; }
+        else if (key === 'mdName') { l[key] = val; }
+        else l[key] = val;
+        await DB.put("trade_logs", l);
+        this.refresh();
+      },
+
+      async delData(store, id) {
+        if (!confirm("このデータを削除してもよろしいですか？")) return;
+        await DB.del(store, id);
+        if (store === 'chars') {
+          const prog = await DB.getAll("progress");
+          for (const p of prog) if (p.charId === id) await DB.del("progress", p.id);
+        }
+        this.refresh();
+      }
+    });
+
+    /* logic_4.js: テーマ・設定・データ管理 */
+
+    extend(ctrl, {
+      async updateTheme(themeId) {
+        let theme;
+        if (themeId === "custom") {
+          theme = await DB.getKV("customTheme") || THEMES["deep"];
+        } else {
+          theme = THEMES[themeId] || THEMES["deep"];
+        }
+
+        const root = document.documentElement;
+        root.style.setProperty('--bg', theme.bg);
+        root.style.setProperty('--bg-soft', theme.bg2);
+        root.style.setProperty('--text', theme.txt);
+        root.style.setProperty('--primary', theme.acc);
+        root.style.setProperty('--secondary', theme.bord);
+        root.style.setProperty('--accent1', theme.acc2);
+        root.style.setProperty('--accent2', theme.nd_b || '#f43f5e');
+        root.style.setProperty('--primary-text', theme.gold);
+        root.style.setProperty('--card-bg', theme.bg2);
+        root.style.setProperty('--border', theme.bord);
+        root.style.setProperty('--sidebar-bg', theme.bg3);
+
+        const config = await DB.getKV("config") || {};
+        config.theme = themeId;
+        await DB.put("kv", { key: "config", val: config });
+        this.renderThemeGrid(themeId);
+        this.renderCustomThemeEditor(theme);
+      },
+
+      renderThemeGrid(current) {
+        const grid = document.getElementById("themeGrid");
+        if (!grid) return;
+        let html = Object.keys(THEMES).map(t => {
+          const v = THEMES[t];
+          return `
+        <div class="theme-card ${t === current ? 'active' : ''}" onclick="ctrl.updateTheme('${t}')">
+          <div class="theme-swatches">
+            <div style="background:${v.bg}"></div>
+            <div style="background:${v.acc}"></div>
+            <div style="background:${v.gold}"></div>
+          </div>
+          <div style="font-size:10px">${t}</div>
+        </div>
+      `;
+        }).join("");
+
+        html += `
+      <div class="theme-card ${current === 'custom' ? 'active' : ''}" onclick="ctrl.updateTheme('custom')">
+        <div class="theme-swatches" style="background:#444; border:1px dashed #888">
+          <div style="background:var(--bg)"></div>
+          <div style="background:var(--primary)"></div>
+          <div style="background:var(--primary-text)"></div>
+        </div>
+        <div style="font-size:10px">Custom</div>
+      </div>
+    `;
+        grid.innerHTML = html;
+      },
+
+      async renderCustomThemeEditor(theme) {
+        const container = document.getElementById("customThemeEditor");
+        if (!container) return;
+        const fields = [
+          { id: 'bg', label: 'メイン背景', val: theme.bg },
+          { id: 'bg2', label: 'サブ背景', val: theme.bg2 },
+          { id: 'bg3', label: 'サイドバー背景', val: theme.bg3 },
+          { id: 'txt', label: 'テキスト色', val: theme.txt },
+          { id: 'acc', label: 'プライマリ色', val: theme.acc },
+          { id: 'acc2', label: 'アクセント色', val: theme.acc2 },
+          { id: 'gold', label: 'プライマリ文字色', val: theme.gold },
+          { id: 'bord', label: 'ボーダー色', val: theme.bord }
+        ];
+        container.innerHTML = `
+      <div style="margin-bottom:20px; padding:15px; background:rgba(0,0,0,0.3); border-radius:12px; border:1px solid var(--border);">
+        <div style="font-size:12px; font-weight:700; margin-bottom:15px; color:var(--primary);">🎨 リアルタイム・カラープレビュー</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;">
+          ${fields.map(f => `
+            <div class="form-vertical" style="background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+              <label style="font-size:11px; font-weight:700; margin-bottom:8px; display:block; opacity:0.8;">${f.label}</label>
+              <div style="display:flex; gap:12px; align-items:center;">
+                <div style="position:relative; width:44px; height:44px; border-radius:50%; overflow:hidden; border:2px solid #fff; box-shadow:0 0 0 1px var(--border);">
+                  <input type="color" id="color-${f.id}" value="${f.val}" oninput="ctrl.previewColor('${f.id}', this.value)" style="position:absolute; top:-5px; left:-5px; width:60px; height:60px; border:none; background:none; cursor:pointer;">
+                </div>
+                <div style="flex:1;">
+                  <div id="code-${f.id}" style="font-family:monospace; font-size:13px; font-weight:700;">${f.val.toUpperCase()}</div>
+                  <div style="font-size:9px; opacity:0.5;">クリックして変更</div>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+      <div class="btn-group" style="display:flex; gap:12px; justify-content: flex-end;">
+        <button class="btn btn-primary" onclick="ctrl.saveFullCustomTheme()" style="min-width:140px;">💾 設定を保存</button>
+        <button class="btn btn-danger" onclick="ctrl.deleteCustomTheme()">🗑️ カスタム設定を消去</button>
+      </div>
+    `;
+      },
+
+      previewColor(id, val) {
+        const codeEl = document.getElementById(`code-${id}`);
+        if (codeEl) codeEl.textContent = val.toUpperCase();
+        const themeMap = {
+          bg: '--bg', bg2: '--bg-soft', bg3: '--sidebar-bg',
+          txt: '--text', acc: '--primary', acc2: '--accent1',
+          gold: '--primary-text', bord: '--border'
+        };
+        if (themeMap[id]) document.documentElement.style.setProperty(themeMap[id], val);
+      },
+
+      async saveFullCustomTheme() {
+        const theme = {};
+        const ids = ['bg', 'bg2', 'bg3', 'txt', 'acc', 'acc2', 'gold', 'bord'];
+        ids.forEach(id => {
+          const el = document.getElementById(`color-${id}`);
+          if (el) theme[id] = el.value;
+        });
+        await DB.put("kv", { key: "customTheme", val: theme });
+        ui.toast("カスタムテーマを保存しました");
+        this.updateTheme("custom");
+      },
+
+      async deleteCustomTheme() {
+        if (!confirm("保存されているカスタムテーマを完全に削除しますか？\n(設定はDeepテーマに戻ります)")) return;
+        await DB.del("kv", "customTheme");
+        ui.toast("カスタムテーマを削除しました");
+        this.updateTheme("deep");
+      },
+
+      async updateConfig(key, val) {
+        const config = await DB.getKV("config") || {};
+        config[key] = val;
+        await DB.put("kv", { key: "config", val: config });
+        if (key === 'moneyMode') await this.renderNav();
+        this.refresh();
+      },
+
+      // --- 一括登録・データ管理 ---
+      async bulkAddChars() {
+        try {
+          const data = JSON.parse(document.getElementById("bulkCharJson").value);
+          for (const c of data) {
+            if (!c.name) continue;
+            c.money = c.money || 0;
+            c.order = c.order || 99;
+            await DB.put("chars", c);
+          }
+          ui.toast("一括登録完了");
+          document.getElementById("bulkCharJson").value = "";
+          this.refresh();
+        } catch (e) { ui.toast("JSON形式が正しくありません"); }
+      },
+
+      async exportData() {
+        const data = {
+          chars: await DB.getAll("chars"),
+          mds: await DB.getAll("mds"),
+          progress: await DB.getAll("progress"),
+          drop_logs: await DB.getAll("drop_logs"),
+          trade_logs: await DB.getAll("trade_logs"),
+          mvp_logs: await DB.getAll("mvp_logs"),
+          kv: await DB.getAll("kv")
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `ro_unified_backup_${Date.now()}.json`;
+        a.click();
+      },
+
+      async importData(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            for (const s of ["chars", "mds", "progress", "drop_logs", "trade_logs", "mvp_logs", "kv"]) {
+              if (data[s]) { for (const item of data[s]) await DB.put(s, item); }
+            }
+            ui.toast("インポートが完了しました");
+            location.reload();
+          } catch (e) { ui.toast("失敗しました"); }
+        };
+        reader.readAsText(file);
+      },
+
+      async clearAll() {
+        if (!confirm("全データを完全に消去します。よろしいですか？")) return;
+        const stores = ["chars", "mds", "progress", "drop_logs", "trade_logs", "mvp_logs", "kv"];
+        for (const s of stores) {
+          const all = await DB.getAll(s);
+          for (const item of all) await DB.del(s, item.id || item.key);
+        }
+        location.reload();
+      },
+
+      copyPrompt() {
+        const text = document.getElementById("geminiPrompt").textContent;
+        navigator.clipboard.writeText(text).then(() => ui.toast("コピーしました"));
+      }
+    });
+
+    function extend(target, source) {
+      for (const key in source) { target[key] = source[key]; }
+    }
+
+    window.onload = () => ctrl.init();
+
+  </script>
+</body>
+
+</html>
