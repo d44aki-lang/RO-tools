@@ -1902,8 +1902,13 @@
         } else if (type === '3days') {
           next.setDate(next.getDate() + 3); next.setHours(5, 0, 0, 0);
         } else if (type === 'weeklyTue12') {
-          let diff = 2 - next.getDay(); if (diff <= 0) diff += 7;
-          next.setDate(next.getDate() + diff); next.setHours(12, 0, 0, 0);
+          let diff = 2 - next.getDay();
+          next.setDate(next.getDate() + diff);
+          next.setHours(12, 0, 0, 0);
+          // 火曜日の12時前にチェックした場合、当日の12時をリセット時間とする
+          if (next.getTime() <= last.getTime()) {
+            next.setDate(next.getDate() + 7);
+          }
         }
         return next.getTime();
       },
