@@ -26,6 +26,10 @@
       --done-text: #4ade80;
       --na: #1e293b;
       --na-text: #64748b;
+      --text-muted: #9895b5;
+      --ct-daily: #0ea5e9;
+      --ct-3days: #f59e0b;
+      --ct-weekly: #8b5cf6;
     }
 
     * {
@@ -332,17 +336,17 @@
     }
 
     .ct-daily {
-      background: #0ea5e9;
+      background: var(--ct-daily);
       color: #fff;
     }
 
     .ct-3days {
-      background: #f59e0b;
+      background: var(--ct-3days);
       color: #fff;
     }
 
     .ct-weeklyTue12 {
-      background: #8b5cf6;
+      background: var(--ct-weekly);
       color: #fff;
     }
 
@@ -385,12 +389,12 @@
 
     .btn-primary {
       background: var(--primary);
-      color: #fff;
+      color: var(--primary-text);
     }
 
     .btn-gold {
       background: var(--primary);
-      color: #fff;
+      color: var(--primary-text);
     }
 
     .btn-danger {
@@ -485,7 +489,7 @@
       left: 50%;
       transform: translateX(-50%);
       background: var(--primary);
-      color: #fff;
+      color: var(--primary-text);
       padding: 10px 20px;
       border-radius: 30px;
       z-index: 3000;
@@ -923,8 +927,8 @@
               <div class="hero-btns" style="display:flex; gap:12px; justify-content:center; margin-bottom:20px;">
                 <button class="btn btn-primary" onclick="ctrl.addKills(1)">+1 討伐</button>
                 <button class="btn btn-gold" onclick="ctrl.addNowHist()">カード獲得！</button>
-                <button class="btn btn-secondary btn-sm" onclick="ctrl.addEmptyHist()">手動行追加</button>
-                <button class="btn btn-secondary btn-sm" onclick="ctrl.setCustomKills()">任意数設定</button>
+                <button class="btn btn-primary btn-sm" onclick="ctrl.addEmptyHist()">手動行追加</button>
+                <button class="btn btn-gold btn-sm" onclick="ctrl.setCustomKills()">任意数設定</button>
               </div>
             </div>
             <div id="lifetimeSummary" class="table-wrap" style="width:100%; margin-top:10px;">
@@ -3305,10 +3309,17 @@
     /* logic_4.js: テーマ・設定・データ管理 */
 
     extend(ctrl, {
-      async updateTheme(themeId) {
+      async updateTheme(themeId, customThemeObj) {
         let theme;
-        if (themeId === "custom") {
+        if (customThemeObj) {
+          theme = customThemeObj;
+        } else if (themeId === "custom") {
           theme = await DB.getKV("customTheme") || THEMES["deep"];
+        } else if (themeId && themeId.startsWith("user_")) {
+          const userThemes = await DB.getKV("userThemes") || [];
+          const targetId = Number(themeId.replace("user_", ""));
+          const found = userThemes.find(x => x.id === targetId);
+          theme = found ? found.colors : THEMES["deep"];
         } else {
           theme = THEMES[themeId] || THEMES["deep"];
         }
@@ -3326,110 +3337,226 @@
         root.style.setProperty('--border', theme.bord);
         root.style.setProperty('--sidebar-bg', theme.bg3);
 
+        // 完了(✔)・対象外(－)・文字副の適用
+        root.style.setProperty('--done', theme.d || '#064e3b');
+        root.style.setProperty('--done-text', theme.d_t || '#4ade80');
+        root.style.setProperty('--na', theme.nd || '#1e293b');
+        root.style.setProperty('--na-text', theme.nd_t || '#64748b');
+        root.style.setProperty('--text-muted', theme.txt2 || '#9895b5');
+
+        // CTバッジ色 (ライトテーマ判定)
+        const isLight = ['snow','ivory','sakura','lucid','github_l','ayu_light','atom_l'].some(x => themeId.includes(x));
+        root.style.setProperty('--ct-daily', theme.ct_d || (isLight ? '#2563eb' : '#0ea5e9'));
+        root.style.setProperty('--ct-3days', theme.ct_3 || (isLight ? '#7c3aed' : '#f59e0b'));
+        root.style.setProperty('--ct-weekly', theme.ct_w || (isLight ? '#db2777' : '#8b5cf6'));
+
         const config = await DB.getKV("config") || {};
         config.theme = themeId;
         await DB.put("kv", { key: "config", val: config });
-        this.renderThemeGrid(themeId);
-        this.renderCustomThemeEditor(theme);
+        await this.renderThemeGrid(themeId);
+        await this.renderCustomThemeEditor(theme);
       },
 
-      renderThemeGrid(current) {
+      async renderThemeGrid(current) {
         const grid = document.getElementById("themeGrid");
         if (!grid) return;
-        let html = Object.keys(THEMES).map(t => {
+
+        const userThemes = await DB.getKV("userThemes") || [];
+        let html = "";
+
+        // ユーザー保存テーマの表示
+        if (userThemes.length > 0) {
+          html += `
+            <div style="grid-column: 1 / -1; font-size: 11px; font-weight: bold; margin-top: 10px; color: var(--primary);">⭐ オリジナル保存テーマ</div>
+          `;
+          html += userThemes.map(t => {
+            const isAct = current === `user_${t.id}`;
+            return `
+              <div style="position:relative;">
+                <div class="theme-card ${isAct ? 'active' : ''}" onclick="ctrl.updateTheme('user_${t.id}', ${JSON.stringify(t.colors).replace(/"/g, '&quot;')})">
+                  <div class="theme-swatches">
+                    <div style="background:${t.colors.bg}"></div>
+                    <div style="background:${t.colors.acc}"></div>
+                    <div style="background:${t.colors.gold}"></div>
+                  </div>
+                  <div style="font-size:10px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:80px;" title="${t.name}">${t.name}</div>
+                </div>
+                <button onclick="ctrl.deleteUserTheme(${t.id})" style="position:absolute; top:-5px; right:-5px; background:var(--accent2); color:#fff; border:none; border-radius:50%; width:16px; height:16px; font-size:10px; cursor:pointer; z-index:10; display:flex; align-items:center; justify-content:center; padding:0; line-height:1;">×</button>
+              </div>
+            `;
+          }).join("");
+          html += `
+            <div style="grid-column: 1 / -1; font-size: 11px; font-weight: bold; margin-top: 15px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px;">🎨 プリセットテーマ</div>
+          `;
+        }
+
+        // プリセットテーマの描画
+        html += Object.keys(THEMES).map(t => {
           const v = THEMES[t];
           return `
-        <div class="theme-card ${t === current ? 'active' : ''}" onclick="ctrl.updateTheme('${t}')">
-          <div class="theme-swatches">
-            <div style="background:${v.bg}"></div>
-            <div style="background:${v.acc}"></div>
-            <div style="background:${v.gold}"></div>
-          </div>
-          <div style="font-size:10px">${t}</div>
-        </div>
-      `;
+            <div class="theme-card ${t === current ? 'active' : ''}" onclick="ctrl.updateTheme('${t}')">
+              <div class="theme-swatches">
+                <div style="background:${v.bg}"></div>
+                <div style="background:${v.acc}"></div>
+                <div style="background:${v.gold}"></div>
+              </div>
+              <div style="font-size:10px">${t}</div>
+            </div>
+          `;
         }).join("");
 
+        // カスタム編集用カード
         html += `
-      <div class="theme-card ${current === 'custom' ? 'active' : ''}" onclick="ctrl.updateTheme('custom')">
-        <div class="theme-swatches" style="background:#444; border:1px dashed #888">
-          <div style="background:var(--bg)"></div>
-          <div style="background:var(--primary)"></div>
-          <div style="background:var(--primary-text)"></div>
-        </div>
-        <div style="font-size:10px">Custom</div>
-      </div>
-    `;
+          <div style="grid-column: 1 / -1; font-size: 11px; font-weight: bold; margin-top: 15px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px;">🛠️ カスタマイズ</div>
+          <div class="theme-card ${current === 'custom' ? 'active' : ''}" onclick="ctrl.updateTheme('custom')">
+            <div class="theme-swatches" style="background:#444; border:1px dashed #888">
+              <div style="background:var(--bg)"></div>
+              <div style="background:var(--primary)"></div>
+              <div style="background:var(--primary-text)"></div>
+            </div>
+            <div style="font-size:10px">Custom (編集用)</div>
+          </div>
+        `;
         grid.innerHTML = html;
       },
 
       async renderCustomThemeEditor(theme) {
         const container = document.getElementById("customThemeEditor");
         if (!container) return;
+
+        const config = await DB.getKV("config") || {};
+        const current = config.theme || "deep";
+
+        if (current !== "custom") {
+          container.innerHTML = `
+            <div style="padding:20px; background:rgba(0,0,0,0.2); border-radius:12px; border:1px dashed var(--border); text-align:center;">
+              <p style="font-size:13px; margin-bottom:12px; opacity:0.8;">🎨 現在テーマ「<b>${current}</b>」を選択中です。配色を変更するには編集モードを開始してください。</p>
+              <button class="btn btn-primary" onclick="ctrl.createCustomThemeFromActive()" style="font-size:12px;">
+                🎨 現在のテーマをベースにカスタム編集を開始
+              </button>
+              <p style="font-size:10px; margin-top:8px; opacity:0.5;">※ 現在選択中の配色のコピーを作成して編集を開始します。既存のCustomデータは上書きされます。</p>
+            </div>
+          `;
+          return;
+        }
+
+        const isLight = ['snow','ivory','sakura','lucid','github_l','ayu_light','atom_l'].some(x => current.includes(x));
         const fields = [
           { id: 'bg', label: 'メイン背景', val: theme.bg },
           { id: 'bg2', label: 'サブ背景', val: theme.bg2 },
           { id: 'bg3', label: 'サイドバー背景', val: theme.bg3 },
-          { id: 'txt', label: 'テキスト色', val: theme.txt },
+          { id: 'txt', label: 'テキスト主', val: theme.txt },
+          { id: 'txt2', label: 'テキスト副', val: theme.txt2 || '#9895b5' },
+          { id: 'gold', label: '強調テキスト', val: theme.gold },
           { id: 'acc', label: 'プライマリ色', val: theme.acc },
           { id: 'acc2', label: 'アクセント色', val: theme.acc2 },
-          { id: 'gold', label: 'プライマリ文字色', val: theme.gold },
-          { id: 'bord', label: 'ボーダー色', val: theme.bord }
+          { id: 'bord', label: 'ボーダー色', val: theme.bord },
+          { id: 'd', label: '完了背景(✔)', val: theme.d || '#132320' },
+          { id: 'd_t', label: '完了文字(✔)', val: theme.d_t || '#4ade80' },
+          { id: 'nd', label: '対象外背景(－)', val: theme.nd || '#2a1a1a' },
+          { id: 'nd_t', label: '対象外文字(－)', val: theme.nd_t || '#f87171' },
+          { id: 'ct_d', label: '毎日バッジ', val: theme.ct_d || (isLight ? '#2563eb' : '#0ea5e9') },
+          { id: 'ct_3', label: '3日バッジ', val: theme.ct_3 || (isLight ? '#7c3aed' : '#f59e0b') },
+          { id: 'ct_w', label: '週間バッジ', val: theme.ct_w || (isLight ? '#db2777' : '#8b5cf6') }
         ];
+
         container.innerHTML = `
-      <div style="margin-bottom:20px; padding:15px; background:rgba(0,0,0,0.3); border-radius:12px; border:1px solid var(--border);">
-        <div style="font-size:12px; font-weight:700; margin-bottom:15px; color:var(--primary);">🎨 リアルタイム・カラープレビュー</div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;">
-          ${fields.map(f => `
-            <div class="form-vertical" style="background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.2);">
-              <label style="font-size:11px; font-weight:700; margin-bottom:8px; display:block; opacity:0.8;">${f.label}</label>
-              <div style="display:flex; gap:12px; align-items:center;">
-                <div style="position:relative; width:44px; height:44px; border-radius:50%; overflow:hidden; border:2px solid #fff; box-shadow:0 0 0 1px var(--border);">
-                  <input type="color" id="color-${f.id}" value="${f.val}" oninput="ctrl.previewColor('${f.id}', this.value)" style="position:absolute; top:-5px; left:-5px; width:60px; height:60px; border:none; background:none; cursor:pointer;">
-                </div>
-                <div style="flex:1;">
-                  <div id="code-${f.id}" style="font-family:monospace; font-size:13px; font-weight:700;">${f.val.toUpperCase()}</div>
-                  <div style="font-size:9px; opacity:0.5;">クリックして変更</div>
-                </div>
-              </div>
+          <div style="margin-bottom:20px; padding:15px; background:rgba(0,0,0,0.3); border-radius:12px; border:1px solid var(--border);">
+            <div style="font-size:12px; font-weight:700; margin-bottom:15px; color:var(--primary); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <span>🎨 カスタムテーマ編集 (変更は即座に反映・自動保存されます)</span>
+              <button class="btn btn-primary" onclick="ctrl.saveAsUserTheme()" style="padding:6px 12px; font-size:11px;">⭐ 名前を付けてオリジナルテーマとして保存</button>
             </div>
-          `).join("")}
-        </div>
-      </div>
-      <div class="btn-group" style="display:flex; gap:12px; justify-content: flex-end;">
-        <button class="btn btn-primary" onclick="ctrl.saveFullCustomTheme()" style="min-width:140px;">💾 設定を保存</button>
-        <button class="btn btn-danger" onclick="ctrl.deleteCustomTheme()">🗑️ カスタム設定を消去</button>
-      </div>
-    `;
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;">
+              ${fields.map(f => `
+                <div class="form-vertical" style="background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+                  <label style="font-size:11px; font-weight:700; margin-bottom:8px; display:block; opacity:0.8;">${f.label}</label>
+                  <div style="display:flex; gap:12px; align-items:center;">
+                    <div style="position:relative; width:44px; height:44px; border-radius:50%; overflow:hidden; border:2px solid #fff; box-shadow:0 0 0 1px var(--border);">
+                      <input type="color" id="color-${f.id}" value="${f.val}" oninput="ctrl.updateCustomColor('${f.id}', this.value)" style="position:absolute; top:-5px; left:-5px; width:60px; height:60px; border:none; background:none; cursor:pointer;">
+                    </div>
+                    <div style="flex:1;">
+                      <div id="code-${f.id}" style="font-family:monospace; font-size:13px; font-weight:700;">${f.val.toUpperCase()}</div>
+                      <div style="font-size:9px; opacity:0.5;">クリックして変更</div>
+                    </div>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          <div class="btn-group" style="display:flex; gap:12px; justify-content: flex-end;">
+            <button class="btn btn-danger" onclick="ctrl.deleteCustomTheme()">🗑️ カスタム編集の消去</button>
+          </div>
+        `;
       },
 
-      previewColor(id, val) {
+      async updateCustomColor(id, val) {
         const codeEl = document.getElementById(`code-${id}`);
         if (codeEl) codeEl.textContent = val.toUpperCase();
-        const themeMap = {
-          bg: '--bg', bg2: '--bg-soft', bg3: '--sidebar-bg',
-          txt: '--text', acc: '--primary', acc2: '--accent1',
-          gold: '--primary-text', bord: '--border'
-        };
-        if (themeMap[id]) document.documentElement.style.setProperty(themeMap[id], val);
-      },
 
-      async saveFullCustomTheme() {
-        const theme = {};
-        const ids = ['bg', 'bg2', 'bg3', 'txt', 'acc', 'acc2', 'gold', 'bord'];
-        ids.forEach(id => {
-          const el = document.getElementById(`color-${id}`);
-          if (el) theme[id] = el.value;
-        });
+        const theme = await DB.getKV("customTheme") || { ...THEMES["deep"] };
+        theme[id] = val;
         await DB.put("kv", { key: "customTheme", val: theme });
-        ui.toast("カスタムテーマを保存しました");
         this.updateTheme("custom");
       },
 
+      async createCustomThemeFromActive() {
+        const config = await DB.getKV("config") || {};
+        const activeThemeId = config.theme || "deep";
+        let baseTheme = {};
+
+        if (activeThemeId && activeThemeId.startsWith("user_")) {
+          const userThemes = await DB.getKV("userThemes") || [];
+          const targetId = Number(activeThemeId.replace("user_", ""));
+          const found = userThemes.find(x => x.id === targetId);
+          baseTheme = found ? { ...found.colors } : { ...THEMES["deep"] };
+        } else {
+          baseTheme = { ...THEMES[activeThemeId] };
+        }
+
+        await DB.put("kv", { key: "customTheme", val: baseTheme });
+        ui.toast("カスタム編集モードを開始しました");
+        this.updateTheme("custom");
+      },
+
+      async saveAsUserTheme() {
+        const themeColors = await DB.getKV("customTheme") || { ...THEMES["deep"] };
+        const userThemes = await DB.getKV("userThemes") || [];
+        
+        const name = prompt("保存するオリジナルテーマ名を入力してください:", `マイテーマ ${userThemes.length + 1}`);
+        if (!name || !name.trim()) return;
+
+        const newTheme = {
+          id: Date.now(),
+          name: name.trim(),
+          colors: themeColors
+        };
+
+        userThemes.push(newTheme);
+        await DB.put("kv", { key: "userThemes", val: userThemes });
+        ui.toast(`オリジナルテーマ「${name}」を保存しました`);
+        this.updateTheme(`user_${newTheme.id}`, themeColors);
+      },
+
+      async deleteUserTheme(id) {
+        if (!confirm("このオリジナル保存テーマを削除しますか？")) return;
+        
+        const userThemes = await DB.getKV("userThemes") || [];
+        const filtered = userThemes.filter(x => x.id !== id);
+        await DB.put("kv", { key: "userThemes", val: filtered });
+        ui.toast("テーマを削除しました");
+
+        const config = await DB.getKV("config") || {};
+        if (config.theme === `user_${id}`) {
+          this.updateTheme("deep");
+        } else {
+          this.updateTheme(config.theme);
+        }
+      },
+
       async deleteCustomTheme() {
-        if (!confirm("保存されているカスタムテーマを完全に削除しますか？\n(設定はDeepテーマに戻ります)")) return;
+        if (!confirm("現在編集中のカスタムテーマ設定を消去しますか？\n(設定はDeepテーマに戻ります)")) return;
         await DB.del("kv", "customTheme");
-        ui.toast("カスタムテーマを削除しました");
+        ui.toast("カスタム設定を消去しました");
         this.updateTheme("deep");
       },
 
