@@ -671,6 +671,30 @@
     .dragging {
       opacity: 0.5;
     }
+
+    /* ソート可能なカラムヘッダー */
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+    th.sortable:hover {
+      background: var(--accent1);
+      color: var(--bg);
+    }
+    th.sortable::after {
+      content: ' ⇅';
+      font-size: 0.7em;
+      opacity: 0.5;
+    }
+    th.sortable.asc::after {
+      content: ' ▲';
+      opacity: 1;
+    }
+    th.sortable.desc::after {
+      content: ' ▼';
+      opacity: 1;
+    }
   </style>
 </head>
 
@@ -873,11 +897,11 @@
                 <table>
                   <thead>
                     <tr>
-                      <th>アイテム</th>
-                      <th>現在庫</th>
-                      <th>購入(費用)</th>
-                      <th>販売(売上)</th>
-                      <th>評価単価</th>
+                      <th class="sortable" onclick="ctrl.sortStock('name')" id="stockSortName">アイテム</th>
+                      <th class="sortable" onclick="ctrl.sortStock('qty')" id="stockSortQty">現在庫</th>
+                      <th class="sortable" onclick="ctrl.sortStock('buyTotal')" id="stockSortBuyTotal">購入(費用)</th>
+                      <th class="sortable" onclick="ctrl.sortStock('sellTotal')" id="stockSortSellTotal">販売(売上)</th>
+                      <th class="sortable" onclick="ctrl.sortStock('price')" id="stockSortPrice">評価単価</th>
                       <th>操作</th>
                     </tr>
                   </thead>
@@ -896,13 +920,13 @@
               <table>
                 <thead>
                   <tr>
-                    <th>日時</th>
-                    <th>種別</th>
-                    <th>アイテム</th>
-                    <th>紐付MD</th>
-                    <th>個数</th>
-                    <th>単価</th>
-                    <th>合計</th>
+                    <th class="sortable" onclick="ctrl.sortTrade('date')" id="tradeSortDate">日時</th>
+                    <th class="sortable" onclick="ctrl.sortTrade('type')" id="tradeSortType">種別</th>
+                    <th class="sortable" onclick="ctrl.sortTrade('item')" id="tradeSortItem">アイテム</th>
+                    <th class="sortable" onclick="ctrl.sortTrade('mdName')" id="tradeSortMdName">紐付MD</th>
+                    <th class="sortable" onclick="ctrl.sortTrade('qty')" id="tradeSortQty">個数</th>
+                    <th class="sortable" onclick="ctrl.sortTrade('price')" id="tradeSortPrice">単価</th>
+                    <th class="sortable" onclick="ctrl.sortTrade('total')" id="tradeSortTotal">合計</th>
                     <th>操作</th>
                   </tr>
                 </thead>
@@ -966,10 +990,10 @@
               <table onpaste="ctrl.handlePaste(event)">
                 <thead>
                   <tr>
-                    <th>排出日</th>
-                    <th>カード名</th>
-                    <th>討伐数</th>
-                    <th>売却額</th>
+                    <th class="sortable" onclick="ctrl.sortMvp('date')" id="mvpSortDate">排出日</th>
+                    <th class="sortable" onclick="ctrl.sortMvp('name')" id="mvpSortName">カード名</th>
+                    <th class="sortable" onclick="ctrl.sortMvp('kills')" id="mvpSortKills">討伐数</th>
+                    <th class="sortable" onclick="ctrl.sortMvp('price')" id="mvpSortPrice">売却額</th>
                     <th>操作</th>
                   </tr>
                 </thead>
@@ -1594,6 +1618,13 @@
       currentServer: "All",
       selectedTradeYear: new Date().getFullYear(),
       showZeroStock: false,
+      // ソート状態管理
+      stockSortKey: 'name',
+      stockSortDir: 'asc',
+      tradeSortKey: 'date',
+      tradeSortDir: 'desc',
+      mvpSortKey: 'date',
+      mvpSortDir: 'desc',
 
       getTue12(date) {
         const d = new Date(date);
@@ -2148,6 +2179,12 @@
         const chk = document.getElementById("showZeroStock");
         if (chk) chk.checked = this.showZeroStock;
 
+        // ソート状態をヘッダーに反映
+        this._updateSortHeader('stock', this.stockSortKey, this.stockSortDir);
+
+        // 価格マップ（ソート計算用）
+        const priceMap = (item) => latestPrices[item] || npcPrices[item] || NPC[item] || 0;
+
         const items = Object.entries(stocks)
           .filter(e => e[1].qty !== 0 || e[1].sellQty !== 0 || e[1].buyQty !== 0)
           .filter(e => {
@@ -2155,6 +2192,24 @@
             return e[1].qty !== 0;
           })
           .sort((a, b) => {
+            const key = this.stockSortKey;
+            const dir = this.stockSortDir === 'asc' ? 1 : -1;
+            // ソートキーが指定されている場合はカラムソート優先
+            if (key !== 'name') {
+              let va, vb;
+              if (key === 'qty') { va = a[1].qty; vb = b[1].qty; }
+              else if (key === 'buyTotal') { va = a[1].buyTotal; vb = b[1].buyTotal; }
+              else if (key === 'sellTotal') { va = a[1].sellTotal; vb = b[1].sellTotal; }
+              else if (key === 'price') { va = priceMap(a[0]); vb = priceMap(b[0]); }
+              else { va = 0; vb = 0; }
+              if (va !== vb) return (va - vb) * dir;
+              return a[0].localeCompare(b[0]);
+            }
+            // name ソートまたはデフォルト
+            if (key === 'name') {
+              return a[0].localeCompare(b[0]) * dir;
+            }
+            // フォールバック: itemOrder順
             if (itemOrder) {
               let ia = itemOrder.indexOf(a[0]);
               let ib = itemOrder.indexOf(b[0]);
@@ -2990,20 +3045,38 @@
         if (!select) return;
         const currentMd = select.value;
         const mds = await DB.getAll("mds");
-        let filtered = mds;
-        if (item) {
-          filtered = mds.filter(m => {
-            if (!m.items) return false;
-            const keys = Array.isArray(m.items) ? m.items : Object.keys(m.items);
-            return keys.includes(item);
-          });
-        }
-        select.innerHTML = `<option value="">紐付けMD (${item && filtered.length === 0 ? '該当なし' : 'なし/その他'})</option>` +
-          filtered.map(m => `<option value="${m.name}">${m.name}</option>`).join("");
+        mds.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-        if (item && filtered.length === 1) {
-          select.value = filtered[0].name;
-        } else if (currentMd && (!item || filtered.some(m => m.name === currentMd))) {
+        // アイテムと一致するMDを特定（デフォルト選択候補）
+        const matchedMds = item ? mds.filter(m => {
+          if (!m.items) return false;
+          const keys = Array.isArray(m.items) ? m.items : Object.keys(m.items);
+          return keys.includes(item);
+        }) : [];
+
+        // 全MDを選択肢に表示（一致するMDは上部にグループ表示）
+        select.innerHTML = `<option value="">紐付けMD (なし/その他)</option>`;
+        if (matchedMds.length > 0) {
+          // 排出設定されているMD（推奨）
+          select.innerHTML += `<optgroup label="★ 排出設定あり">`;
+          select.innerHTML += matchedMds.map(m => `<option value="${m.name}">${m.name}</option>`).join("");
+          select.innerHTML += `</optgroup>`;
+          // それ以外のMD
+          const otherMds = mds.filter(m => !matchedMds.some(mm => mm.id === m.id));
+          if (otherMds.length > 0) {
+            select.innerHTML += `<optgroup label="その他のMD">`;
+            select.innerHTML += otherMds.map(m => `<option value="${m.name}">${m.name}</option>`).join("");
+            select.innerHTML += `</optgroup>`;
+          }
+        } else {
+          // アイテム未入力 or 一致なし → 全MD表示
+          select.innerHTML += mds.map(m => `<option value="${m.name}">${m.name}</option>`).join("");
+        }
+
+        // デフォルト選択: アイテム一致MDが1つなら自動選択、それ以外は現在値を維持
+        if (item && matchedMds.length === 1) {
+          select.value = matchedMds[0].name;
+        } else if (currentMd) {
           select.value = currentMd;
         }
 
@@ -3017,6 +3090,47 @@
         }
       },
 
+      // ソート用ヘルパー: ヘッダーにソートインジケーターを更新
+      _updateSortHeader(prefix, key, dir) {
+        const cols = ['date','type','item','qty','price','total','name','kills','buyTotal','sellTotal','mdName'];
+        cols.forEach(k => {
+          const el = document.getElementById(`${prefix}Sort${k.charAt(0).toUpperCase() + k.slice(1)}`);
+          if (el) { el.classList.remove('asc','desc'); }
+        });
+        const target = document.getElementById(`${prefix}Sort${key.charAt(0).toUpperCase() + key.slice(1)}`);
+        if (target) target.classList.add(dir);
+      },
+
+      sortStock(key) {
+        if (this.stockSortKey === key) {
+          this.stockSortDir = this.stockSortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          this.stockSortKey = key;
+          this.stockSortDir = 'asc';
+        }
+        this.refresh();
+      },
+
+      sortTrade(key) {
+        if (this.tradeSortKey === key) {
+          this.tradeSortDir = this.tradeSortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          this.tradeSortKey = key;
+          this.tradeSortDir = 'desc';
+        }
+        this.refresh();
+      },
+
+      sortMvp(key) {
+        if (this.mvpSortKey === key) {
+          this.mvpSortDir = this.mvpSortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          this.mvpSortKey = key;
+          this.mvpSortDir = 'desc';
+        }
+        this.refresh();
+      },
+
       async renderTradeUI(config) {
         const trades = await DB.getAll("trade_logs");
         const body = document.getElementById("tradeLogFull");
@@ -3024,7 +3138,23 @@
         const mds = await DB.getAll("mds");
         this.updateTradeMdOptions();
 
-        body.innerHTML = trades.sort((a, b) => b.date - a.date).slice(0, 100).map(t => {
+        // ソート適用
+        const sortKey = this.tradeSortKey;
+        const sortDir = this.tradeSortDir;
+        const sorted = [...trades].sort((a, b) => {
+          let va = a[sortKey], vb = b[sortKey];
+          if (typeof va === 'string') va = va.toLowerCase();
+          if (typeof vb === 'string') vb = vb.toLowerCase();
+          if (va === undefined) va = 0;
+          if (vb === undefined) vb = 0;
+          if (va < vb) return sortDir === 'asc' ? -1 : 1;
+          if (va > vb) return sortDir === 'asc' ? 1 : -1;
+          return 0;
+        }).slice(0, 100);
+
+        this._updateSortHeader('trade', sortKey, sortDir);
+
+        body.innerHTML = sorted.map(t => {
           const itemMdOptions = mds.filter(m => {
             if (!m.items) return false;
             const keys = Array.isArray(m.items) ? m.items : Object.keys(m.items);
@@ -3123,7 +3253,24 @@
       renderMvpHist(logs, usePrefix) {
         const tbody = document.getElementById("histBody");
         if (!tbody) return;
-        tbody.innerHTML = logs.sort((a, b) => b.date - a.date).map(l => `
+
+        // ソート適用
+        const sortKey = this.mvpSortKey;
+        const sortDir = this.mvpSortDir;
+        const sorted = [...logs].sort((a, b) => {
+          let va = a[sortKey], vb = b[sortKey];
+          if (typeof va === 'string') va = va.toLowerCase();
+          if (typeof vb === 'string') vb = vb.toLowerCase();
+          if (va === undefined) va = 0;
+          if (vb === undefined) vb = 0;
+          if (va < vb) return sortDir === 'asc' ? -1 : 1;
+          if (va > vb) return sortDir === 'asc' ? 1 : -1;
+          return 0;
+        });
+
+        this._updateSortHeader('mvp', sortKey, sortDir);
+
+        tbody.innerHTML = sorted.map(l => `
       <tr>
         <td contenteditable="true" onblur="ctrl.editMvp(${l.id}, 'date', this.textContent)">${new Date(l.date).toLocaleDateString()}</td>
         <td contenteditable="true" onblur="ctrl.editMvp(${l.id}, 'name', this.textContent)">${l.name}</td>
