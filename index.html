@@ -798,10 +798,10 @@
               <table id="mdEffTable">
                 <thead>
                   <tr>
-                    <th>MD名</th>
-                    <th>実施回数</th>
-                    <th>累計収益</th>
-                    <th>平均収益</th>
+                    <th class="sortable" onclick="ctrl.sortMdEff('name')" id="mdEffSortName">MD名</th>
+                    <th class="sortable" onclick="ctrl.sortMdEff('count')" id="mdEffSortCount">実施回数</th>
+                    <th class="sortable" onclick="ctrl.sortMdEff('total')" id="mdEffSortTotal">累計収益</th>
+                    <th class="sortable" onclick="ctrl.sortMdEff('avg')" id="mdEffSortAvg">平均収益</th>
                     <th>操作</th>
                   </tr>
                 </thead>
@@ -1625,6 +1625,8 @@
       tradeSortDir: 'desc',
       mvpSortKey: 'date',
       mvpSortDir: 'desc',
+      mdEffSortKey: 'total',
+      mdEffSortDir: 'desc',
 
       getTue12(date) {
         const d = new Date(date);
@@ -2503,7 +2505,25 @@
         const tbody = document.getElementById("mdEfficiencyStats");
         if (!tbody) return;
         const stats = await this.calcMdEfficiency(drops, trades);
-        tbody.innerHTML = Object.entries(stats).sort((a, b) => b[1].total - a[1].total).map(([name, s]) => `
+
+        // ソート適用
+        const sortKey = this.mdEffSortKey;
+        const sortDir = this.mdEffSortDir;
+        const sorted = Object.entries(stats).sort((a, b) => {
+          let va, vb;
+          if (sortKey === 'name') { va = a[0].toLowerCase(); vb = b[0].toLowerCase(); }
+          else if (sortKey === 'count') { va = a[1].count; vb = b[1].count; }
+          else if (sortKey === 'total') { va = a[1].total; vb = b[1].total; }
+          else if (sortKey === 'avg') { va = a[1].avg; vb = b[1].avg; }
+          else { va = 0; vb = 0; }
+          if (va < vb) return sortDir === 'asc' ? -1 : 1;
+          if (va > vb) return sortDir === 'asc' ? 1 : -1;
+          return 0;
+        });
+
+        this._updateSortHeader('mdEff', sortKey, sortDir);
+
+        tbody.innerHTML = sorted.map(([name, s]) => `
       <tr>
         <td style="text-align:left">${name}</td>
         <td contenteditable="true" onblur="ctrl.editMdStats('${name}', 'count', this.textContent)">${s.count}</td>
@@ -2512,6 +2532,17 @@
         <td><button class="btn btn-danger btn-sm" onclick="ctrl.deleteMdStat('${name}')">削</button></td>
       </tr>
     `).join("");
+      },
+
+      sortMdEff(key) {
+        if (this.mdEffSortKey === key) {
+          this.mdEffSortDir = this.mdEffSortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          this.mdEffSortKey = key;
+          // MD名は昇順、数値系はデフォルト降順
+          this.mdEffSortDir = key === 'name' ? 'asc' : 'desc';
+        }
+        this.refresh();
       },
 
       async editMdStats(name, key, val) {
@@ -3092,7 +3123,7 @@
 
       // ソート用ヘルパー: ヘッダーにソートインジケーターを更新
       _updateSortHeader(prefix, key, dir) {
-        const cols = ['date','type','item','qty','price','total','name','kills','buyTotal','sellTotal','mdName'];
+        const cols = ['date','type','item','qty','price','total','name','kills','buyTotal','sellTotal','mdName','count','avg'];
         cols.forEach(k => {
           const el = document.getElementById(`${prefix}Sort${k.charAt(0).toUpperCase() + k.slice(1)}`);
           if (el) { el.classList.remove('asc','desc'); }
